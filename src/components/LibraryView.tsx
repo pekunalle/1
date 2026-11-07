@@ -1,7 +1,18 @@
 import { useMemo, useState } from "react";
 import { CHORD_CATS, filterChords, type ChordCategory } from "@/lib/music/chords";
-import { SCALE_CATS, filterScales, type ScaleCategory } from "@/lib/music/scales";
+import { SCALE_CATS, filterScales, type Scale, type ScaleCategory } from "@/lib/music/scales";
+import { norm } from "@/lib/music/theory";
 import { useKitara } from "@/lib/store";
+
+function hitTag(scale: Scale, query: string): string | null {
+  const q = norm(query.trim());
+  if (q.length < 2) return null;
+  const tag = scale.tags.find((item) => {
+    const n = norm(item);
+    return n.includes(q) && n !== norm(scale.name);
+  });
+  return tag ?? null;
+}
 
 export function ScaleLibrary() {
   const [cat, setCat] = useState<ScaleCategory | "all">("metal");
@@ -14,9 +25,9 @@ export function ScaleLibrary() {
   return (
     <div>
       <p className="kicker">Skaalat</p>
-      <h1 className="title mt-1">Metalli ensin</h1>
-      <p className="mt-2 text-sm text-muted">Haku katsoo nimen, kaavan ja bändin. Kokeile fryyginen, djent tai Slayer.</p>
-      <input className="field mt-3" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hae: fryyginen, djent, Slayer" aria-label="Hae skaaloja" />
+      <h1 className="title mt-1">Kirjasto</h1>
+      <p className="mt-2 text-sm text-muted">Haku katsoo nimen, bändin ja biisin. Kokeile Slayer, Sleep, Paranoid tai Meshuggah.</p>
+      <input className="field mt-3" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hae bändi tai biisi: Slayer, Sleep, Paranoid" aria-label="Hae skaaloja" />
       <div className="row-scroll mt-3">
         {SCALE_CATS.map((item) => (
           <button type="button" key={item.id} className="chip" data-on={!q && cat === item.id ? "1" : "0"} onClick={() => { setCat(item.id); setQ(""); }}>
@@ -40,9 +51,9 @@ export function ScaleLibrary() {
           >
             <span className="flex items-baseline justify-between gap-3">
               <span className="font-display text-2xl uppercase tracking-wide">{scale.name}</span>
-              {scale.categories.includes("metal") ? <span className="kicker">Metalli</span> : null}
             </span>
             <span className="formula">{scale.formula}</span>
+            {hitTag(scale, q) ? <span className="mt-1 block text-sm text-accent">Haku: {hitTag(scale, q)}</span> : null}
             <span className="mt-1 block text-sm text-muted">{scale.hint}</span>
           </button>
         ))}
@@ -62,9 +73,9 @@ export function ChordLibrary() {
   return (
     <div>
       <p className="kicker">Soinnut</p>
-      <h1 className="title mt-1">Voima ensin</h1>
-      <p className="mt-2 text-sm text-muted">Metallisoinnot ovat ensimmäisenä. Haku löytää myös djentin ja Slayerin.</p>
-      <input className="field mt-3" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hae: voimasointu, djent, dim" aria-label="Hae sointuja" />
+      <h1 className="title mt-1">Kirjasto</h1>
+      <p className="mt-2 text-sm text-muted">Haku löytää nimen ja tyylin. Kokeile voima, sus2 tai dim.</p>
+      <input className="field mt-3" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hae sointu" aria-label="Hae sointuja" />
       <div className="row-scroll mt-3">
         {CHORD_CATS.map((item) => (
           <button type="button" key={item.id} className="chip" data-on={!q && cat === item.id ? "1" : "0"} onClick={() => { setCat(item.id); setQ(""); }}>
@@ -88,7 +99,6 @@ export function ChordLibrary() {
           >
             <span className="flex items-baseline justify-between gap-3">
               <span className="font-display text-2xl uppercase tracking-wide">{chord.name}</span>
-              {chord.categories.includes("metal") ? <span className="kicker">Metalli</span> : null}
             </span>
             <span className="formula">{chord.formula}</span>
             <span className="mt-1 block text-sm text-muted">{chord.hint}</span>

@@ -1,6 +1,8 @@
 import { norm } from "./theory";
+import { MORE_SCALES } from "./scales-more";
+import { EXTRA_SCALES } from "./scales-extra";
 
-export type ScaleCategory = "metal" | "mode" | "pent" | "jazz" | "world";
+export type ScaleCategory = "metal" | "hard" | "stoner" | "mode" | "pent" | "jazz" | "world" | "sym";
 
 export type Scale = {
   id: string;
@@ -18,10 +20,13 @@ export type Scale = {
 
 export const SCALE_CATS: { id: ScaleCategory | "all"; label: string }[] = [
   { id: "metal", label: "Metalli" },
+  { id: "hard", label: "Hard rock" },
+  { id: "stoner", label: "Stoner" },
   { id: "mode", label: "Moodit" },
   { id: "pent", label: "Pentatoniset" },
   { id: "jazz", label: "Jazz" },
   { id: "world", label: "Maailma" },
+  { id: "sym", label: "Symmetriset" },
   { id: "all", label: "Kaikki" },
 ];
 
@@ -297,7 +302,84 @@ export const SCALES: Scale[] = [
     tags: ["altered", "superlocrian", "jazz", "dominantti"],
     hint: "Dominanttiseiskan alteroinnit. Jazzsoolon jännite.",
   },
+  ...MORE_SCALES,
+  ...EXTRA_SCALES,
 ];
+
+const EXTRA: Record<string, { tags: string[]; cats?: ScaleCategory[] }> = {
+  phrygian: {
+    tags: ["slayer", "metallica", "megadeth", "tool", "gojira", "lamb of god", "slipknot", "rammstein", "trivium", "sepultura", "obituary", "cannibal corpse", "death", "kreator", "testament", "anthrax", "deftones", "system of a down", "soad", "parkway drive", "bring me the horizon", "at the gates", "immortal", "darkthrone", "emperor", "mayhem", "bathory", "behemoth", "dimmu borgir", "cradle of filth", "amon amarth", "machine head", "crowbar", "type o negative", "stam1na", "mokoma", "kotiteollisuus", "psychosocial", "duality", "du hast", "schism", "laid to rest", "holy wars", "south of heaven", "angel of death"],
+  },
+  "phrygian-dominant": {
+    tags: ["slayer", "raining blood", "angel of death", "nile", "behemoth", "yngwie", "malmsteen", "children of bodom", "bodom", "arch enemy", "rainbow", "dio", "holy diver", "van halen", "eruption", "randy rhoads", "crazy train", "mercyful fate", "king diamond", "symphony x", "wintersun", "black dahlia murder", "kashmir", "aerials", "led zeppelin"],
+  },
+  "harmonic-minor": {
+    tags: ["iron maiden", "the trooper", "hallowed be thy name", "yngwie", "malmsteen", "children of bodom", "bodom", "arch enemy", "in flames", "nightwish", "dragonforce", "helloween", "blind guardian", "stratovarius", "sonata arctica", "kalmah", "wintersun", "iced earth", "symphony x", "randy rhoads", "mr crowley", "ozzy", "apocalyptica", "ensiferum", "dimmu borgir", "cradle of filth", "carcass", "at the gates", "slaughter of the soul"],
+    cats: ["hard"],
+  },
+  "natural-minor": {
+    tags: ["metallica", "master of puppets", "enter sandman", "fade to black", "one", "iron maiden", "fear of the dark", "run to the hills", "number of the beast", "black sabbath", "megadeth", "ozzy", "dio", "judas priest", "painkiller", "scorpions", "nightwish", "sabaton", "amon amarth", "twilight of the thunder god", "insomnium", "sentenced", "him", "ghost", "avenged sevenfold", "killswitch engage", "opeth", "blackwater park", "katatonia", "paradise lost", "amorphis", "apocalyptica", "helloween", "iced earth"],
+    cats: ["hard"],
+  },
+  "minor-pent": {
+    tags: ["black sabbath", "iron man", "paranoid", "war pigs", "sweet leaf", "black sabbath paranoid", "pantera", "walk", "cemetery gates", "dimebag", "zakk wylde", "ozzy", "no more tears", "metallica", "kirk hammett", "alice in chains", "them bones", "man in the box", "ac/dc", "acdc", "back in black", "highway to hell", "thunderstruck", "guns n roses", "gnr", "sweet child", "welcome to the jungle", "led zeppelin", "black dog", "whole lotta love", "aerosmith", "dream on", "zz top", "deep purple", "smoke on the water", "van halen", "panama", "motorhead", "ace of spades", "scorpions", "whitesnake", "kiss", "motley crue", "sleep", "kyuss", "electric wizard", "fu manchu", "clutch", "down", "melvins", "qotsa", "queens of the stone age", "red fang", "the sword", "high on fire", "uncle acid", "tony iommi", "rage against the machine", "killing in the name", "audioslave", "soundgarden", "black hole sun", "pearl jam", "even flow", "stone temple pilots", "plush", "tool", "schism", "mastodon", "blood mountain", "lamb of god", "slipknot", "before i forget", "korn", "deftones", "change", "my own summer", "system of a down", "toxicity", "soad", "in flames", "jester race", "at the gates", "dark tranquillity", "amon amarth", "children of bodom", "arch enemy", "trivium", "machine head", "sepultura", "soulfly", "gojira", "stranded", "opeth", "ghost", "avenged sevenfold", "killswitch engage", "as i lay dying", "parkway drive", "bring me the horizon", "bullet for my valentine", "disturbed", "godsmack", "static x", "white zombie", "rob zombie", "rammstein", "ministry", "fear factory", "meshuggah", "cannibal corpse", "obituary", "death", "morbid angel", "slayer", "megadeth", "symphony of destruction", "holy wars", "anthrax", "testament", "exodus", "kreator", "sodom", "destruction", "venom", "bathory", "celtic frost", "mercyful fate", "king diamond", "iron maiden", "judas priest", "breaking the law", "living after midnight", "dio", "rainbow", "blackmore", "deep purple", "yngwie", "malmsteen", "stoner", "doom", "candlemass", "saint vitus", "pentagram", "witchfinder general", "orange goblin", "monster magnet", "nebula", "colour haze", "elder", "all them witches", "kadavar", "graveyard", "witchcraft", "uncle acid and the deadbeats", "windhand", "conan", "belzebong", "bongzilla", "weedeater", "eyehategod", "crowbar", "acid bath", "corrosion of conformity", "down", "superjoint", "pantera", "hellyeah", "damageplan", "black label society", "pride and glory"],
+    cats: ["hard", "stoner"],
+  },
+  blues: {
+    tags: ["black sabbath", "pantera", "zz top", "la grange", "srv", "stevie ray vaughan", "clapton", "jimmy page", "led zeppelin", "aerosmith", "whitesnake", "still of the night", "deep purple", "allman brothers", "lynryd skynyrd", "free", "bad company", "black crowes", "clutch", "down", "acid bath", "corrosion of conformity", "coc", "eyehategod", "ac/dc", "acdc", "guns n roses"],
+    cats: ["hard", "stoner"],
+  },
+  dorian: {
+    tags: ["iron maiden", "opeth", "tool", "mastodon", "blood and thunder", "crack the skye", "baroness", "alice in chains", "rooster", "led zeppelin", "black sabbath", "thin lizzy", "whiskey in the jar", "the boys are back in town", "clutch", "type o negative", "black no 1", "amorphis", "alcest", "santana", "pink floyd", "money"],
+    cats: ["hard", "stoner"],
+  },
+  locrian: {
+    tags: ["meshuggah", "bleed", "rational gaze", "periphery", "animals as leaders", "djent", "strapping young lad", "devin townsend", "fear factory", "gojira"],
+  },
+  "dim-hw": {
+    tags: ["meshuggah", "fear factory", "dream theater", "death", "chuck schuldiner", "symbolic", "diminished"],
+  },
+  "double-harmonic": {
+    tags: ["nile", "behemoth", "kashmir", "led zeppelin", "system of a down", "soad", "bysantti"],
+  },
+  "hungarian-minor": {
+    tags: ["nile", "behemoth", "eksoottinen", "musta metalli"],
+  },
+  ionian: {
+    tags: ["iron maiden", "helloween", "thin lizzy", "boston", "more than a feeling", "journey", "duuri", "hard rock"],
+    cats: ["hard"],
+  },
+  lydian: {
+    tags: ["steve vai", "joe satriani", "dream theater", "petrucci", "animals as leaders", "rush", "alex lifeson", "tom sawyer", "frank zappa", "baroness"],
+    cats: ["hard"],
+  },
+  mixolydian: {
+    tags: ["ac/dc", "acdc", "guns n roses", "sweet child o mine", "van halen", "qotsa", "queens of the stone age", "kyuss", "clutch", "foo fighters", "audioslave", "led zeppelin", "deep purple", "thin lizzy", "ghost", "square hammer", "sabaton", "korpiklaani", "the who", "rolling stones", "cream", "sunshine of your love", "jimi hendrix", "fire", "hey joe", "the cult", "wolfmother", "airbourne", "rose tattoo", "accept", "scorpions", "whitesnake", "europe", "ratt", "dokken", "winger", "skid row", "bon jovi", "def leppard"],
+    cats: ["hard", "stoner"],
+  },
+  "major-pent": {
+    tags: ["zz top", "ac/dc", "acdc", "allman brothers", "srv", "kiss", "cheap trick", "duuri", "hard rock"],
+    cats: ["hard"],
+  },
+  "melodic-minor": {
+    tags: ["opeth", "dream theater", "petrucci", "yngwie", "symphony x", "jazz"],
+  },
+  oriental: { tags: ["nile", "behemoth", "eksoottinen"] },
+  persian: { tags: ["nile", "behemoth", "eksoottinen"] },
+  "lydian-dominant": { tags: ["vai", "steve vai", "satriani", "dream theater", "overtone", "acoustic scale"] },
+  altered: { tags: ["jazz", "dominatti", "fusion", "holdsworth"] },
+};
+
+for (const scale of SCALES) {
+  const extra = EXTRA[scale.id];
+  if (!extra) continue;
+  for (const tag of extra.tags) {
+    if (!scale.tags.includes(tag)) scale.tags.push(tag);
+  }
+  for (const cat of extra.cats ?? []) {
+    if (!scale.categories.includes(cat)) scale.categories.push(cat);
+  }
+}
 
 export function scaleById(id: string): Scale {
   return SCALES.find((s) => s.id === id) ?? SCALES[0];

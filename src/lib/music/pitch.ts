@@ -8,71 +8,102 @@ export type Detection = {
   rms: number;
 };
 
-function rmsOf(buf: Float32Array): number {
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-  return Math.sqrt(sum / buf.length);
-}
-
-function parabolic(corr: Float32Array, lag: number): number {
-  const y1 = corr[lag - 1] ?? corr[lag];
-  const y2 = corr[lag];
-  const y3 = corr[lag + 1] ?? corr[lag];
+function parabolic(series: Float32Array, index: number): number {
+  const y1 = series[index - 1] ?? series[index];
+  const y2 = series[index];
+  const y3 = series[index + 1] ?? series[index];
   const denom = y1 - 2 * y2 + y3;
-  if (Math.abs(denom) < 1e-8) return lag;
-  return lag + (y1 - y3) / (2 * denom);
+  if (Math.abs(denom) < 1e-8) return index;
+  return index + (y1 - y3) / (2 * denom);
 }
 
-/** Autocorrelation pitch detector. Returns null when the signal is too quiet or unclear. */
+/**
+ * YIN pitch detector for guitar, including quiet USB interfaces.
+ * The buffer is expected to be already gained by the caller.
+ * Prefers the fundamental when distortion creates a strong octave harmonic.
+ */
 export function detectPitch(input: Float32Array, sampleRate: number): Detection | null {
-  const rms = rmsOf(input);
-  if (rms < 0.012) return null;
-
-  const factor = 2;
-  const length = Math.floor(input.length / factor);
-  if (length < 64) return null;
-  const buf = new Float32Array(length);
-  for (let i = 0; i < length; i++) {
-    buf[i] = (input[i * factor] + input[i * factor + 1]) * 0.5;
-  }
-  const rate = sampleRate / factor;
-  const minF = 55;
-  const maxF = 1040;
-  const minLag = Math.max(2, Math.floor(rate / maxF));
-  const maxLag = Math.min(length - 3, Math.floor(rate / minF));
-  if (maxLag <= minLag + 2) return null;
-
-  const corr = new Float32Array(maxLag + 2);
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    let sum = 0;
-    let energy = 0;
-    const step = 2;
-    for (let i = 0; i < length - lag; i += step) {
-      const a = buf[i];
-      sum += a * buf[i + lag];
-      energy += a * a;
-    }
-    corr[lag] = energy > 1e-8 ? sum / energy : 0;
-  }
-
-  let peakLag = -1;
   let peak = 0;
-  for (let lag = minLag + 1; lag < maxLag; lag++) {
-    const c = corr[lag];
-    if (c > peak) peak = c;
-    if (c >= 0.42 && c >= corr[lag - 1] && c >= corr[lag + 1] && c > corr[lag - 1] + 0.002) {
-      peakLag = lag;
-      peak = c;
-      break;
-    }
+  let energy = 0;
+  for (let i = 0; i < input.length; i++) {
+    const sample = input[i];
+    const mag = sample < 0 ? -sample : sample;
+    if (mag > peak) peak = mag;
+    energy += sample * sample;
   }
-  if (peakLag < 0 || peak < 0.42) return null;
+  const rmsIn = Math.sqrt(energy / input.length);
+  if (peak < 0.012 || rmsIn < 0.004) return null;
 
-  const refined = parabolic(corr, peakLag);
+  const length = input.length >> 1;
+  if (length < 128) return null;
+  const rate = sampleRate * 0.5;
+  const highpass = 1 - Math.exp((-2 * Math.PI * 28) / rate);
+  const buf = new Float32Array(length);
+  let low = 0;
+  for (let i = 0; i < length; i++) {
+    const x = (input[i * 2] + (input[i * 2 + 1] ?? 0)) * 0.5;
+    low += highpass * (x - low);
+    buf[i] = x - low;
+  }
+
+  const minF = 30;
+  const maxF = 1200;
+  const minTau = Math.max(2, Math.floor(rate / maxF));
+  const maxTau = Math.min((length >> 1) - 2, Math.floor(rate / minF));
+  if (maxTau <= minTau + 4) return null;
+
+  const yin = new Float32Array(maxTau + 1);
+  for (let tau = 1; tau <= maxTau; tau++) {
+    let sum = 0;
+    const last = length - tau;
+    for (let i = 0; i < last; i += 2) {
+      const diff = buf[i] - buf[i + tau];
+      sum += diff * diff;
+    }
+    yin[tau] = sum;
+  }
+
+  let running = 0;
+  yin[0] = 1;
+  for (let tau = 1; tau <= maxTau; tau++) {
+    running += yin[tau];
+    yin[tau] = running > 0 ? (yin[tau] * tau) / running : 1;
+  }
+
+  const threshold = 0.2;
+  let tauEst = -1;
+  for (let tau = minTau; tau <= maxTau; tau++) {
+    if (yin[tau] >= threshold) continue;
+    while (tau + 1 <= maxTau && yin[tau + 1] < yin[tau]) tau += 1;
+    tauEst = tau;
+    break;
+  }
+  if (tauEst < 0) {
+    let best = 1;
+    for (let tau = minTau; tau <= maxTau; tau++) {
+      if (yin[tau] < best) {
+        best = yin[tau];
+        tauEst = tau;
+      }
+    }
+    if (tauEst < 0 || best > 0.32) return null;
+  }
+
+  for (let step = 0; step < 2; step++) {
+    const lower = tauEst * 2;
+    if (lower > maxTau) break;
+    const lowIndex = Math.round(lower);
+    if (yin[lowIndex] + 0.03 < yin[tauEst] && yin[lowIndex] < 0.42) tauEst = lowIndex;
+    else break;
+  }
+
+  const refined = parabolic(yin, tauEst);
+  if (refined < minTau) return null;
   const freq = rate / refined;
   if (!Number.isFinite(freq) || freq < minF || freq > maxF) return null;
   const exact = freqToMidi(freq);
   const midi = Math.round(exact);
+  if (midi < 16 || midi > 90) return null;
   const cents = Math.max(-99, Math.min(99, Math.round((exact - midi) * 100)));
-  return { midi, pc: pcOf(midi), cents, freq, rms };
+  return { midi, pc: pcOf(midi), cents, freq, rms: rmsIn };
 }

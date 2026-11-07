@@ -13,6 +13,7 @@ type Props = {
   finnish?: boolean;
   marker: (stringIndex: number, fret: number) => CellMark;
   onPlay: (stringIndex: number, fret: number, midi: number) => void;
+  focusFret?: number;
 };
 
 function MarkerDot({ mark }: { mark: CellMark }) {
@@ -24,7 +25,7 @@ function MarkerDot({ mark }: { mark: CellMark }) {
   );
 }
 
-export const Fretboard = memo(function Fretboard({ tuning, fretCount, leftHanded, finnish = false, marker, onPlay }: Props) {
+export const Fretboard = memo(function Fretboard({ tuning, fretCount, leftHanded, finnish = false, marker, onPlay, focusFret = 0 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const frets = Array.from({ length: fretCount }, (_, i) => i + 1);
   const fretOrder = leftHanded ? [...frets].reverse() : frets;
@@ -34,12 +35,19 @@ export const Fretboard = memo(function Fretboard({ tuning, fretCount, leftHanded
     const el = scrollRef.current;
     if (!el) return;
     const snap = () => {
+      if (!leftHanded && focusFret > 0) {
+        const cell = el.querySelectorAll(".fret-cell")[focusFret - 1] as HTMLElement | undefined;
+        if (cell) {
+          el.scrollLeft = Math.max(0, cell.offsetLeft - 12);
+          return;
+        }
+      }
       el.scrollLeft = leftHanded ? el.scrollWidth : 0;
     };
     snap();
     const id = requestAnimationFrame(snap);
     return () => cancelAnimationFrame(id);
-  }, [leftHanded, fretCount, tuning.id]);
+  }, [leftHanded, fretCount, tuning.id, focusFret]);
 
   const nut = (stringIndex: number) => {
     const mark = marker(stringIndex, 0);
@@ -88,6 +96,7 @@ export const Fretboard = memo(function Fretboard({ tuning, fretCount, leftHanded
                   type="button"
                   key={fret}
                   className="fret-cell"
+                  data-fret={fret}
                   aria-label={mark.aria}
                   onClick={() => onPlay(stringIndex, fret, midi)}
                 >

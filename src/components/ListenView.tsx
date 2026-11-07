@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Fretboard } from "@/components/Fretboard";
+import { InputPicker } from "@/components/InputPicker";
 import { PitchReadout, micErrorText } from "@/components/PitchReadout";
 import { usePitch } from "@/components/use-pitch";
 import { Waveform } from "@/components/Waveform";
 import { pluck } from "@/lib/music/audio";
-import { makeMarker } from "@/lib/music/marks";
+import { inPlayZone, makeMarker } from "@/lib/music/marks";
 import { chordById } from "@/lib/music/chords";
 import { scaleById } from "@/lib/music/scales";
 import { noteName, pcOf } from "@/lib/music/theory";
@@ -13,15 +14,23 @@ import { useKitara } from "@/lib/store";
 
 type Level = 0 | 1 | 2;
 
-function rollTarget(level: Level, fretCount: number, midi: number[], tones: Set<number> | null) {
+function rollTarget(
+  level: Level,
+  fretCount: number,
+  midi: number[],
+  tones: Set<number> | null,
+  octaves: 0 | 1 | 2 | 3,
+  positionFret: number,
+) {
   const max = level === 0 ? Math.min(3, fretCount) : level === 1 ? Math.min(7, fretCount) : fretCount;
   for (let i = 0; i < 40; i++) {
     const stringIndex = Math.floor(Math.random() * midi.length);
     const fret = Math.floor(Math.random() * (max + 1));
+    if (!inPlayZone(fret, octaves, positionFret)) continue;
     const pc = pcOf(midi[stringIndex] + fret);
     if (!tones || tones.has(pc)) return { stringIndex, fret };
   }
-  return { stringIndex: 0, fret: 0 };
+  return { stringIndex: 0, fret: positionFret };
 }
 
 export function ListenView() {
@@ -42,6 +51,9 @@ export function ListenView() {
   const leftHanded = useKitara((s) => s.leftHanded);
   const finnish = useKitara((s) => s.finnishNames);
   const huntBest = useKitara((s) => s.huntBest);
+  const octaves = useKitara((s) => s.octaves);
+  const positionFret = useKitara((s) => s.positionFret);
+  const inputId = useKitara((s) => s.inputId);
   const setHuntBest = useKitara((s) => s.setHuntBest);
   const tuning = tuningById(tuningId);
   const scale = scaleById(scaleId);
@@ -68,11 +80,15 @@ export function ListenView() {
     };
   };
 
-  const { heard, error, getWave } = usePitch(listening, (det) => {
-    if (!hunt || !target) return;
-    if (Math.abs(det.cents) > 35) return;
-    succeed(target)?.(det.midi);
-  });
+  const { heard, error, level: meter, deviceLabel, getWave } = usePitch(
+    listening,
+    (det) => {
+      if (!hunt || !target) return;
+      if (Math.abs(det.cents) > 45) return;
+      succeed(target)?.(det.midi);
+    },
+    inputId,
+  );
 
   const marker = useMemo(
     () =>
@@ -87,8 +103,10 @@ export function ListenView() {
         sequence: [],
         heardMidi: heard && Math.abs(heard.cents) <= 45 ? heard.midi : null,
         target: hunt ? target : null,
+        octaves,
+        positionFret,
       }),
-    [tuning, fretCount, root, finnish, labelMode, active, heard, hunt, target],
+    [tuning, fretCount, root, finnish, labelMode, active, heard, hunt, target, octaves, positionFret],
   );
 
   const place = target
@@ -115,7 +133,7 @@ export function ListenView() {
             setHunt((v) => {
               const next = !v;
               if (next) {
-                setTarget(rollTarget(level, fretCount, tuning.midi, toneSet));
+                setTarget(rollTarget(level, fretCount, tuning.midi, toneSet, octaves, positionFret));
                 setStreak(0);
                 setFlash(null);
               }
@@ -127,6 +145,18 @@ export function ListenView() {
         </button>
       </div>
       {micErrorText(error) ? <p className="text-sm text-primary">{micErrorText(error)}</p> : null}
+      <InputPicker hot={listening} />
+      {listening ? (
+        <div>
+          <div className="cents-track" aria-label="Äänitaso">
+            <span className="level-fill" style={{ width: `${Math.round(meter * 100)}%` }} />
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            {deviceLabel || "Äänitulo"}
+            {meter < 0.04 ? " · hiljainen. USB-kortilla nosta lähtövoimakkuutta." : ""}
+          </p>
+        </div>
+      ) : null}
 
       <PitchReadout heard={listening ? heard : null} finnish={finnish} idle={listening ? "Soita yksi nuotti" : "Mikrofoni ei ole päällä"} />
       <Waveform getWave={getWave} />
@@ -148,7 +178,7 @@ export function ListenView() {
                 data-on={level === n ? "1" : "0"}
                 onClick={() => {
                   setLevel(n);
-                  setTarget(rollTarget(n, fretCount, tuning.midi, toneSet));
+                  setTarget(rollTarget(n, fretCount, tuning.midi, toneSet, octaves, positionFret));
                   setStreak(0);
                   setFlash(null);
                 }}
@@ -165,6 +195,7 @@ export function ListenView() {
         fretCount={fretCount}
         leftHanded={leftHanded}
         finnish={finnish}
+        focusFret={octaves === 0 ? 0 : positionFret}
         marker={marker}
         onPlay={(stringIndex, fret, midi) => {
           pluck(midi);

@@ -27,6 +27,9 @@ export type MarkerInput = {
   sequence: SeqPoint[];
   heardMidi: number | null;
   target: { stringIndex: number; fret: number } | null;
+  /** 0 = whole neck. 1–3 limit the lit area to a playable span. */
+  octaves?: 0 | 1 | 2 | 3;
+  positionFret?: number;
 };
 
 function canonicalSlot(pc: number, tuning: Tuning, fretCount: number): string | null {
@@ -44,6 +47,13 @@ function canonicalSlot(pc: number, tuning: Tuning, fretCount: number): string | 
     }
   }
   return bestS >= 0 ? `${bestS}:${bestF}` : null;
+}
+
+export function inPlayZone(fret: number, octaves: 0 | 1 | 2 | 3, positionFret: number): boolean {
+  if (octaves === 0) return true;
+  const start = Math.max(0, positionFret);
+  const width = octaves === 1 ? 5 : octaves === 2 ? 12 : 17;
+  return fret >= start && fret < start + width;
 }
 
 export function makeMarker(input: MarkerInput): (stringIndex: number, fret: number) => CellMark {
@@ -65,6 +75,8 @@ export function makeMarker(input: MarkerInput): (stringIndex: number, fret: numb
     floating.set(slot, i + 1);
   });
 
+  const zone = (fret: number) => inPlayZone(fret, input.octaves ?? 0, input.positionFret ?? 0);
+
   return (stringIndex: number, fret: number): CellMark => {
     const open = input.tuning.midi[stringIndex];
     const midi = midiOf(open, fret);
@@ -74,7 +86,7 @@ export function makeMarker(input: MarkerInput): (stringIndex: number, fret: numb
     const place = fret === 0 ? "avoin" : `${fret}. nauha`;
     const stringName = `${noteName(open, input.finnish)}-kieli`;
     const base = `${stringName}, ${place}, ${name}`;
-    const inTone = Boolean(toneSet?.has(pc));
+    const inTone = Boolean(toneSet?.has(pc)) && zone(fret);
     const isRoot = inTone && pc === pcOf(input.root);
     const order = positional.get(key) ?? floating.get(key);
     const isTarget = input.target?.stringIndex === stringIndex && input.target.fret === fret;

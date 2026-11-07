@@ -33,6 +33,9 @@ type KitaraState = {
   bpm: number;
   beats: number;
   huntBest: number;
+  octaves: 0 | 1 | 2 | 3;
+  positionFret: number;
+  inputId: string;
   setTab: (tab: TabId) => void;
   setTuningId: (id: string) => void;
   setRoot: (root: number) => void;
@@ -51,6 +54,9 @@ type KitaraState = {
   setBpm: (n: number) => void;
   setBeats: (n: number) => void;
   setHuntBest: (n: number) => void;
+  setOctaves: (n: 0 | 1 | 2 | 3) => void;
+  setPositionFret: (n: number) => void;
+  setInputId: (id: string) => void;
   applyMatch: (scaleId: string, root: number) => void;
 };
 
@@ -75,6 +81,9 @@ export const useKitara = create<KitaraState>((set) => ({
   bpm: 80,
   beats: 4,
   huntBest: 0,
+  octaves: 0,
+  positionFret: 0,
+  inputId: "",
   setTab: (tab) => set({ tab }),
   setTuningId: (tuningId) => set({ tuningId }),
   setRoot: (root) => set({ root: pcOf(root) }),
@@ -108,6 +117,9 @@ export const useKitara = create<KitaraState>((set) => ({
   setBpm: (bpm) => set({ bpm: Math.max(40, Math.min(220, Math.round(bpm))) }),
   setBeats: (beats) => set({ beats }),
   setHuntBest: (huntBest) => set({ huntBest }),
+  setOctaves: (octaves) => set({ octaves }),
+  setPositionFret: (n) => set({ positionFret: Math.max(0, Math.min(19, Math.round(n))) }),
+  setInputId: (inputId) => set({ inputId }),
   applyMatch: (scaleId, root) => set({ scaleId, root: pcOf(root), highlight: "scale", tab: "board" }),
 }));
 
@@ -127,6 +139,9 @@ type Persisted = {
   bpm: number;
   beats: number;
   huntBest: number;
+  octaves: 0 | 1 | 2 | 3;
+  positionFret: number;
+  inputId: string;
 };
 
 function snapshot(s: KitaraState): Persisted {
@@ -146,6 +161,9 @@ function snapshot(s: KitaraState): Persisted {
     bpm: s.bpm,
     beats: s.beats,
     huntBest: s.huntBest,
+    octaves: s.octaves,
+    positionFret: s.positionFret,
+    inputId: s.inputId,
   };
 }
 
@@ -175,6 +193,9 @@ export function hydrateKitara(): void {
         bpm: typeof data.bpm === "number" ? data.bpm : 80,
         beats: typeof data.beats === "number" ? data.beats : 4,
         huntBest: typeof data.huntBest === "number" ? data.huntBest : 0,
+        octaves: data.octaves === 1 || data.octaves === 2 || data.octaves === 3 ? data.octaves : 0,
+        positionFret: typeof data.positionFret === "number" ? Math.max(0, Math.min(19, data.positionFret)) : 0,
+        inputId: typeof data.inputId === "string" ? data.inputId : "",
       });
     }
   } catch {

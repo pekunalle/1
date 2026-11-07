@@ -32,8 +32,8 @@ export function Shell() {
         <div className="brand">
           <span className="jewel" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="font-display text-2xl uppercase leading-none tracking-widest">Kitara Reeni</p>
-            <p className="text-xs text-muted">Metallin otelauta</p>
+            <p className="font-display text-xl uppercase leading-none tracking-wide sm:text-2xl">Skaalalauta</p>
+            <p className="text-xs text-muted">Skaalat ja otelauta</p>
           </div>
         </div>
         <div className="flex gap-2">

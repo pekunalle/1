@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Kitara Reeni";
+const APP_NAME = "Skaalalauta";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -11,7 +11,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "description", content: "Metallin otelauta: skaalat, soinnut ja soitettujen nuottien tunnistus." },
+      { name: "description", content: "Skaalalauta: skaalat, soinnut, otelauta ja soitettujen nuottien tunnistus." },
       { name: "theme-color", content: "#110e0c" },
     ],
     links: [

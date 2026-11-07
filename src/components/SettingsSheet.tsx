@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { InputPicker } from "@/components/InputPicker";
 import { SHARP, FINNISH, type LabelMode } from "@/lib/music/theory";
 import { TUNINGS } from "@/lib/music/tunings";
 import { useKitara, type FretCount } from "@/lib/store";
@@ -54,6 +55,8 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             Sulje
           </button>
         </div>
+
+        <InputPicker hot={open} />
 
         <label className="mt-4 block text-sm text-muted" htmlFor="tuning">
           Vire

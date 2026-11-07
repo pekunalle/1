@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Fretboard } from "@/components/Fretboard";
+import { InputPicker } from "@/components/InputPicker";
 import { micErrorText } from "@/components/PitchReadout";
 import { usePitch } from "@/components/use-pitch";
 import { pluck } from "@/lib/music/audio";
@@ -47,11 +48,16 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
   const leftHanded = useKitara((s) => s.leftHanded);
   const finnishNames = useKitara((s) => s.finnishNames);
   const sequence = useKitara((s) => s.sequence);
+  const octaves = useKitara((s) => s.octaves);
+  const positionFret = useKitara((s) => s.positionFret);
+  const inputId = useKitara((s) => s.inputId);
   const setRoot = useKitara((s) => s.setRoot);
   const setScaleId = useKitara((s) => s.setScaleId);
   const setHighlight = useKitara((s) => s.setHighlight);
   const setLabelMode = useKitara((s) => s.setLabelMode);
   const setTab = useKitara((s) => s.setTab);
+  const setOctaves = useKitara((s) => s.setOctaves);
+  const setPositionFret = useKitara((s) => s.setPositionFret);
   const addSequence = useKitara((s) => s.addSequence);
   const removeSequence = useKitara((s) => s.removeSequence);
   const clearSequence = useKitara((s) => s.clearSequence);
@@ -68,9 +74,9 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
     if (!phrase) setListening(false);
   }, [phrase]);
 
-  const { heard, error } = usePitch(phrase && listening, (det) => {
+  const { heard, error, level, deviceLabel } = usePitch(phrase && listening, (det) => {
     addSequence({ pc: det.pc, midi: det.midi });
-  });
+  }, inputId);
 
   const matches = useMemo(() => (phrase ? matchScales(sequence) : []), [phrase, sequence]);
   const unique = uniquePcs(sequence);
@@ -95,8 +101,10 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
         sequence: phrase ? sequence : [],
         heardMidi: phrase && heard && Math.abs(heard.cents) <= 45 ? heard.midi : null,
         target: null,
+        octaves: phrase ? 0 : octaves,
+        positionFret,
       }),
-    [tuning, fretCount, shownRoot, finnishNames, labelMode, shown, phrase, activeScale, sequence, heard],
+    [tuning, fretCount, shownRoot, finnishNames, labelMode, shown, phrase, activeScale, sequence, heard, octaves, positionFret],
   );
 
   return (
@@ -106,7 +114,7 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
           <p className="kicker">Frase</p>
           <h1 className="title mt-1">Mistä skaalasta?</h1>
           <p className="mt-2 text-sm text-muted">
-            Soita nuotteja peräkkäin, yksi kerrallaan. Napauta kaulaa tai käytä mikrofonia. Reeni kertoo, mihin skaalaan ne menevät.
+            Soita nuotteja peräkkäin, yksi kerrallaan. Napauta kaulaa tai käytä mikrofonia. Skaalalauta kertoo, mihin skaalaan ne menevät.
           </p>
         </div>
       ) : (
@@ -166,7 +174,7 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
               </button>
             ))}
           </div>
-          <div className="row-scroll" aria-label="Metalliskaalat">
+          <div className="row-scroll" aria-label="Skaalat">
             {metal.map((item) => (
               <button
                 type="button"
@@ -209,6 +217,22 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
               <i className="swatch-tone" /> Skaalassa
             </span>
           </div>
+          <div className="flex flex-wrap gap-2" aria-label="Oktaavit">
+            {([0, 1, 2, 3] as const).map((n) => (
+              <button type="button" key={n} className="btn" data-on={octaves === n ? "1" : "0"} onClick={() => setOctaves(n)}>
+                {n === 0 ? "Koko kaula" : `${n} okt.`}
+              </button>
+            ))}
+          </div>
+          {octaves > 0 ? (
+            <div className="row-scroll" aria-label="Alueen alku">
+              {[0, 3, 5, 7, 9, 12, 15].map((fret) => (
+                <button type="button" key={fret} className="choice" data-on={positionFret === fret ? "1" : "0"} onClick={() => setPositionFret(fret)}>
+                  {fret === 0 ? "Avoin" : `${fret}. nauha`}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </>
       ) : (
         <div>
@@ -262,6 +286,7 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
         fretCount={fretCount}
         leftHanded={leftHanded}
         finnish={finnishNames}
+        focusFret={phrase || octaves === 0 ? 0 : positionFret}
         marker={marker}
         onPlay={(stringIndex, fret, midi) => {
           pluck(midi);
@@ -271,7 +296,19 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
         }}
       />
 
+      {phrase ? <InputPicker hot={listening} /> : null}
       {phrase && micErrorText(error) ? <p className="text-sm text-primary">{micErrorText(error)}</p> : null}
+      {phrase && listening ? (
+        <div>
+          <div className="cents-track" aria-label="Äänitaso">
+            <span className="level-fill" style={{ width: `${Math.round(level * 100)}%` }} />
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            {deviceLabel ? deviceLabel : "Äänitulo"}
+            {level < 0.04 ? " · hiljainen. Nosta USB-kortin lähtöä, jos kitara ei kuulu." : ""}
+          </p>
+        </div>
+      ) : null}
       {phrase && listening ? (
         <p className="text-sm text-muted">
           {heard
@@ -328,7 +365,7 @@ export function BoardView({ onSettings }: { onSettings: () => void }) {
       <p className="text-sm text-muted">
         {phrase
           ? "Otelauta näyttää parhaan osuman. Numerot ovat soittamasi järjestys. Mikrofoni kuulee yhden sävelen kerrallaan."
-          : "Napauta nauhaa, niin se soi. Metalliskaalat ovat kaulan yläpuolella."}
+          : "Napauta nauhaa, niin se soi. Rajaa oktaavit, jos haluat nähdä vain soittoalueen."}
       </p>
     </div>
   );
