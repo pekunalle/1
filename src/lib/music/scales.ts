@@ -1,6 +1,9 @@
 import { norm } from "./theory";
 import { MORE_SCALES } from "./scales-more";
 import { EXTRA_SCALES } from "./scales-extra";
+import { DEEP_SCALES } from "./scales-deep";
+import { WIDE_SCALES } from "./scales-wide";
+import { bandTags } from "./band-index";
 
 export type ScaleCategory = "metal" | "hard" | "stoner" | "mode" | "pent" | "jazz" | "world" | "sym";
 
@@ -304,6 +307,8 @@ export const SCALES: Scale[] = [
   },
   ...MORE_SCALES,
   ...EXTRA_SCALES,
+  ...DEEP_SCALES,
+  ...WIDE_SCALES,
 ];
 
 const EXTRA: Record<string, { tags: string[]; cats?: ScaleCategory[] }> = {
@@ -370,14 +375,22 @@ const EXTRA: Record<string, { tags: string[]; cats?: ScaleCategory[] }> = {
   altered: { tags: ["jazz", "dominatti", "fusion", "holdsworth"] },
 };
 
+const BANDS = bandTags();
+
 for (const scale of SCALES) {
   const extra = EXTRA[scale.id];
-  if (!extra) continue;
-  for (const tag of extra.tags) {
-    if (!scale.tags.includes(tag)) scale.tags.push(tag);
+  if (extra) {
+    for (const tag of extra.tags) {
+      if (!scale.tags.includes(tag)) scale.tags.push(tag);
+    }
+    for (const cat of extra.cats ?? []) {
+      if (!scale.categories.includes(cat)) scale.categories.push(cat);
+    }
   }
-  for (const cat of extra.cats ?? []) {
-    if (!scale.categories.includes(cat)) scale.categories.push(cat);
+  const bands = BANDS.get(scale.id);
+  if (!bands) continue;
+  for (const tag of bands) {
+    if (!scale.tags.includes(tag)) scale.tags.push(tag);
   }
 }
 

@@ -1,0 +1,45 @@
+/** More interval sets for metal, hard rock, stoner and the scales around them. */
+export const DEEP_SCALES = [
+  s("in-sen", "In-sen", ["world", "metal"], [0, 1, 5, 7, 10], "1 b2 4 5 b7", [1, 10], 0.4, ["in sen", "japan", "opeth", "alcest", "agalloch", "katatonia"], "Viisi säveltä, b2 heti juuresta. Hidas teema, ei juoksu."),
+  s("kumoi", "Kumoi", ["world", "metal"], [0, 2, 3, 7, 9], "1 2 b3 5 6", [3, 9], 0.38, ["kumoi", "japan", "opeth", "alcest", "pink floyd"], "Molli ilman kvarta ja b7:ää. Avoin, kelluva."),
+  s("ritusen", "Ritusen", ["world", "hard"], [0, 2, 5, 7, 9], "1 2 4 5 6", [2, 9], 0.36, ["ritusen", "japan", "rush", "alex lifeson"], "Duuri ilman terssiä ja septimiä. Sus-sointujen asteikko."),
+  s("egyptian", "Egyptiläinen", ["world", "stoner", "pent"], [0, 2, 5, 7, 10], "1 2 4 5 b7", [5, 10], 0.55, ["egyptian", "sleep", "om", "earth", "kyuss", "qotsa", "queens of the stone age", "tool", "lateralus"], "Mixolyydinen viisikko. Stoner-ostinato yhdellä kielellä."),
+  s("balinese", "Balilainen", ["world", "metal"], [0, 1, 3, 7, 8], "1 b2 b3 5 b6", [1, 8], 0.42, ["bali", "behemoth", "nile", "emperor", "mayhem", "darkthrone"], "Ahdas viisikko. b2 ja b6 tekevät rifistä heti kylmän."),
+  s("malkauns", "Malkauns", ["world", "metal", "pent"], [0, 3, 5, 8, 10], "1 b3 4 b6 b7", [3, 8], 0.48, ["malkauns", "raga", "nile", "behemoth", "orphaned land", "melechesh", "opeth"], "Mollipentatoninen, jossa 5:n tilalla on b6."),
+  s("madhuvanti", "Madhuvanti", ["world", "metal", "jazz"], [0, 2, 3, 6, 7, 9, 11], "1 2 b3 #4 5 6 7", [3, 6, 11], 0.4, ["madhuvanti", "raga", "cynic", "dream theater", "opeth", "holdsworth"], "Molli, #4 ja johtosävel. Fuusio ja prog, ei chug."),
+  s("kanakangi", "Kanakangi", ["world", "metal"], [0, 1, 2, 5, 7, 8, 9], "1 b2 2 4 5 b6 6", [1, 2], 0.22, ["kanakangi", "melakarta", "gorguts", "obscura", "voivod"], "Kolme säveltä peräkkäin alussa. Soita solu, älä koko asteikkoa."),
+  s("natakapriya", "Natakapriya", ["world", "metal"], [0, 1, 3, 5, 7, 9, 10], "1 b2 b3 4 5 6 b7", [1, 9], 0.34, ["natakapriya", "raga", "opeth", "tool", "death"], "Fryyginen, jossa suuri seksti. b2 pysyy, 6 valaisee."),
+  s("kokilapriya", "Kokilapriya", ["world", "metal"], [0, 1, 3, 5, 7, 9, 11], "1 b2 b3 4 5 6 7", [1, 11], 0.32, ["kokilapriya", "raga", "nile", "symphony x", "yngwie"], "b2 ja johtosävel samassa asteikossa. Hidas linja."),
+  s("gayakapriya", "Gayakapriya", ["world", "metal"], [0, 1, 3, 6, 7, 8, 9], "1 b2 b3 #4 5 b6 6", [1, 6], 0.28, ["gayakapriya", "gorguts", "death", "nile", "voivod"], "b2, #4 ja molemmat sekstit. Yksi kieli, hidas."),
+  s("suryakantam", "Suryakantam", ["world", "metal"], [0, 1, 4, 5, 7, 9, 11], "1 b2 3 4 5 6 7", [1, 4, 11], 0.36, ["suryakantam", "raga", "nile", "yngwie", "malmsteen", "rainbow", "blackmore"], "Duuri, b2 ja johtosävel. Neoklassinen teema."),
+  s("shanmukhapriya", "Shanmukhapriya", ["world", "metal"], [0, 1, 3, 6, 7, 9, 10], "1 b2 b3 #4 5 6 b7", [1, 6], 0.38, ["shanmukhapriya", "raga", "death", "chuck schuldiner", "cynic", "meshuggah"], "Fryyginen pohja ja #4. Thrash, joka ei ole pelkkä molli."),
+  s("hemavati", "Hemavati", ["metal", "jazz"], [0, 2, 3, 5, 6, 9, 10], "1 2 b3 4 b5 6 b7", [3, 6], 0.46, ["hemavati", "opeth", "nevermore", "jeff loomis", "cynic", "periphery"], "Doorinen b5. Yksi sävel muuttaa boksin."),
+  s("dharmavati", "Dharmavati", ["metal", "jazz"], [0, 2, 3, 6, 7, 9, 11], "1 2 b3 #4 5 6 7", [3, 6, 11], 0.4, ["dharmavati", "dream theater", "petrucci", "cynic", "opeth", "animals as leaders"], "Melodinen molli, jossa #4. Prog-juoksu."),
+  s("nasikabhusani", "Nasikabhusani", ["hard", "jazz"], [0, 2, 4, 5, 7, 10, 11], "1 2 3 4 5 b7 7", [4, 10, 11], 0.34, ["nasikabhusani", "dream theater", "steve vai", "joe satriani", "rush"], "Mixolyydinen plus johtosävel. Kromaattinen lasku juureen."),
+  s("kosalam", "Kosalam", ["hard", "jazz"], [0, 2, 4, 6, 7, 10, 11], "1 2 3 #4 5 b7 7", [6, 10], 0.36, ["kosalam", "vai", "steve vai", "satriani", "dream theater", "frank zappa"], "Lyydinen, jossa molemmat septimit."),
+  s("chitrambari", "Chitrambari", ["jazz", "metal"], [0, 2, 4, 6, 9, 10, 11], "1 2 3 #4 6 b7 7", [6, 10], 0.3, ["chitrambari", "holdsworth", "frank gambale", "cynic", "animals as leaders"], "#4 ja b7 ilman kvinttiä. Avoin fuusiolinja."),
+  s("chalanata", "Chalanata", ["metal", "world"], [0, 3, 4, 6, 7, 10, 11], "1 #2 3 #4 5 b7 7", [3, 6, 11], 0.33, ["chalanata", "nile", "behemoth", "melechesh", "symphony x"], "Ylinouseva sekunti heti alkuun. Hidas, ei alternate-juoksu."),
+  s("subhapantuvarali", "Subhapantuvarali", ["metal", "world"], [0, 1, 3, 4, 7, 8, 11], "1 b2 b3 3 5 b6 7", [1, 4, 11], 0.35, ["subhapantuvarali", "nile", "behemoth", "slayer", "mercyful fate", "king diamond"], "Molemmat terssit, b2 ja johtosävel. Yksi fraasi riittää."),
+  s("shadvidhamargini", "Shadvidhamargini", ["metal", "world"], [0, 1, 3, 4, 7, 9, 10], "1 b2 b3 3 5 6 b7", [1, 4], 0.32, ["shadvidhamargini", "nile", "system of a down", "soad", "behemoth"], "b2 ja molemmat terssit. SOAD-maku ilman koko kromaattista."),
+  s("yagapriya", "Yagapriya", ["metal"], [0, 2, 3, 4, 7, 8, 10], "1 2 b3 3 5 b6 b7", [3, 4, 8], 0.4, ["yagapriya", "pantera", "dimebag", "zakk wylde", "ozzy", "black label society", "metallica", "kirk hammett"], "Molli ja duuriterssi vierekkäin. Bend niiden väliin."),
+  s("sulini", "Sulini", ["metal", "jazz"], [0, 2, 3, 4, 7, 10, 11], "1 2 b3 3 5 b7 7", [3, 4, 11], 0.34, ["sulini", "dream theater", "opeth", "cynic", "death"], "Molemmat terssit ja molemmat septimit. Valitse yksi kerrallaan."),
+  s("salagam", "Salagam", ["sym", "metal"], [0, 1, 2, 6, 7, 8, 9], "1 b2 2 b5 5 b6 6", [1, 6], 0.2, ["salagam", "gorguts", "obscura", "voivod", "messiaen"], "Tritonus keskellä ja kromaattiset niput. Kolmen nuotin solu."),
+  s("blues-major-add", "Bluesduuri", ["hard", "stoner", "pent"], [0, 2, 3, 4, 5, 7, 10], "1 2 b3 3 4 5 b7", [3, 4, 10], 0.6, ["blues", "zz top", "srv", "stevie ray vaughan", "clapton", "led zeppelin", "aerosmith", "whitesnake", "ac/dc", "acdc", "guns n roses", "gnr", "black crowes", "the black keys"], "Täysi rockblues: molemmat terssit, kvartti ja b7."),
+  s("minor-add9", "Molli add9", ["metal", "hard"], [0, 2, 3, 5, 7, 10], "1 2 b3 4 5 b7", [2, 3], 0.62, ["minor add9", "metallica", "iron maiden", "black sabbath", "opeth", "alice in chains", "soundgarden", "tool"], "Luonnollinen molli ilman b6:ta. Riffi, joka ei painu fryygiseen."),
+  s("phryg-no6", "Fryyginen ilman sekstiä", ["metal"], [0, 1, 3, 5, 7, 10], "1 b2 b3 4 5 b7", [1, 3], 0.7, ["phrygian", "slayer", "sepultura", "obituary", "cannibal corpse", "gojira", "lamb of god"], "Kuusi säveltä. b2 tekee työn, b6 ei ole tiellä."),
+  s("dorian-no6", "Doorinen ilman sekstiä", ["metal", "hard"], [0, 2, 3, 5, 7, 10], "1 2 b3 4 5 b7", [2, 3], 0.5, ["dorian", "tool", "opeth", "mastodon", "alice in chains"], "Sama sävelistö kuin molli add9. Nimeä juuri, niin luonne vaihtuu."),
+];
+
+function s(
+  id: string,
+  name: string,
+  categories: Array<"metal" | "hard" | "stoner" | "mode" | "pent" | "jazz" | "world" | "sym">,
+  intervals: number[],
+  formula: string,
+  color: number[],
+  prior: number,
+  tags: string[],
+  hint: string,
+) {
+  return { id, name, categories, intervals, formula, color, prior, tags, hint };
+}

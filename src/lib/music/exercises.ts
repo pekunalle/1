@@ -1,4 +1,5 @@
 import { MORE_EXERCISES } from "./exercises-more";
+import { PACK_EXERCISES } from "./exercises-pack";
 
 export type ExerciseKind = "treeni" | "sormitus" | "vinkki";
 
@@ -665,4 +666,5 @@ export const EXERCISES: Exercise[] = [
     steps: ["Valitse 5. nauha etusormeksi.", "Nimetön on 7., pinkki 8.", "Jos skaala vaatii 4. nauhaa, siirrä koko käsi, älä kurota peukaloa yli.", "Kurotus on työkalu yhdelle nuotille, ei oletus."],
   },
   ...MORE_EXERCISES,
+  ...PACK_EXERCISES,
 ];

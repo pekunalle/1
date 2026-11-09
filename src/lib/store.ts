@@ -36,6 +36,7 @@ type KitaraState = {
   octaves: 0 | 1 | 2 | 3;
   positionFret: number;
   inputId: string;
+  inputGain: number;
   setTab: (tab: TabId) => void;
   setTuningId: (id: string) => void;
   setRoot: (root: number) => void;
@@ -57,6 +58,7 @@ type KitaraState = {
   setOctaves: (n: 0 | 1 | 2 | 3) => void;
   setPositionFret: (n: number) => void;
   setInputId: (id: string) => void;
+  setInputGain: (n: number) => void;
   applyMatch: (scaleId: string, root: number) => void;
 };
 
@@ -84,6 +86,7 @@ export const useKitara = create<KitaraState>((set) => ({
   octaves: 0,
   positionFret: 0,
   inputId: "",
+  inputGain: 6,
   setTab: (tab) => set({ tab }),
   setTuningId: (tuningId) => set({ tuningId }),
   setRoot: (root) => set({ root: pcOf(root) }),
@@ -120,6 +123,7 @@ export const useKitara = create<KitaraState>((set) => ({
   setOctaves: (octaves) => set({ octaves }),
   setPositionFret: (n) => set({ positionFret: Math.max(0, Math.min(19, Math.round(n))) }),
   setInputId: (inputId) => set({ inputId }),
+  setInputGain: (n) => set({ inputGain: Math.max(1, Math.min(24, Math.round(n))) }),
   applyMatch: (scaleId, root) => set({ scaleId, root: pcOf(root), highlight: "scale", tab: "board" }),
 }));
 
@@ -142,6 +146,7 @@ type Persisted = {
   octaves: 0 | 1 | 2 | 3;
   positionFret: number;
   inputId: string;
+  inputGain: number;
 };
 
 function snapshot(s: KitaraState): Persisted {
@@ -164,6 +169,7 @@ function snapshot(s: KitaraState): Persisted {
     octaves: s.octaves,
     positionFret: s.positionFret,
     inputId: s.inputId,
+    inputGain: s.inputGain,
   };
 }
 
@@ -196,6 +202,7 @@ export function hydrateKitara(): void {
         octaves: data.octaves === 1 || data.octaves === 2 || data.octaves === 3 ? data.octaves : 0,
         positionFret: typeof data.positionFret === "number" ? Math.max(0, Math.min(19, data.positionFret)) : 0,
         inputId: typeof data.inputId === "string" ? data.inputId : "",
+        inputGain: typeof data.inputGain === "number" ? Math.max(1, Math.min(24, data.inputGain)) : 6,
       });
     }
   } catch {

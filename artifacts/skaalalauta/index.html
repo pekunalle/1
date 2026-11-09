@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Skaalalauta</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --panel: #161616;
+      --panel2: #1e1e1e;
+      --accent: #e63946;
+      --accent2: #f4a261;
+      --text: #f1f1f1;
+      --muted: #888;
+      --root: #e63946;
+      --note: #457b9d;
+      --chord: #2a9d8f;
+      --hunt: #e9c46a;
+      --ok: #2a9d8f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+      min-height: 100vh;
+      padding-bottom: 70px;
+    }
+    header {
+      background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+      border-bottom: 2px solid var(--accent);
+      padding: 10px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    .logo span { color: var(--text); font-weight: 400; font-size: 0.8rem; }
+    nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    nav button {
+      background: var(--panel2);
+      border: 1px solid #333;
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    nav button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 10px; }
+    .panel {
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #222;
+    }
+    .panel h2 {
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      color: var(--accent2);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .ctrl {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 100px;
+    }
+    .ctrl label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    select, input[type="text"], input[type="number"], button.action, input[type="range"] {
+      background: var(--panel2);
+      border: 1px solid #333;
+      color: var(--text);
+      padding: 7px 9px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    button.action {
+      background: var(--accent);
+      border-color: var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.action.secondary { background: #333; border-color: #444; }
+    button.action:active { transform: scale(0.97); }
+    button.action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #fretboard-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px 0;
+    }
+    #fretboard {
+      display: grid;
+      gap: 0;
+      min-width: 640px;
+      user-select: none;
+    }
+    .string-row {
+      display: grid;
+      grid-template-columns: 32px repeat(var(--frets), 1fr);
+      height: 34px;
+      align-items: center;
+    }
+    .string-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: center;
+      font-weight: 600;
+    }
+    .fret {
+      position: relative;
+      height: 100%;
+      border-right: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(to bottom, #1a1a1a, #121212);
+      cursor: pointer;
+    }
+    .fret.open { border-left: 3px solid #666; }
+    .fret.marker::after {
+      content: "";
+      position: absolute;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #444;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .fret.dimmed { opacity: 0.22; }
+    .note-dot {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 700;
+      z-index: 2;
+      transition: transform 0.08s;
+      pointer-events: none;
+    }
+    .fret:active .note-dot { transform: scale(1.2); }
+    .note-dot.root { background: var(--root); color: #fff; box-shadow: 0 0 6px var(--root); }
+    .note-dot.scale { background: var(--note); color: #fff; }
+    .note-dot.chord { background: var(--chord); color: #fff; }
+    .note-dot.hunt { background: var(--hunt); color: #111; box-shadow: 0 0 10px var(--hunt); animation: pulse 1s infinite; }
+    .note-dot.detected { background: #9b59b6; color: #fff; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    .fret-numbers {
+      display: grid;
+      grid-template-columns: 32px repeat(var(--frets), 1fr);
+      font-size: 0.6rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 2px;
+    }
+    .info-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      color: var(--muted);
+    }
+    .info-row strong { color: var(--text); }
+
+    .grid-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 6px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .list-item {
+      background: var(--panel2);
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: border-color 0.12s;
+    }
+    .list-item:hover, .list-item.active {
+      border-color: var(--accent);
+    }
+    .list-item.active { background: #2a1518; }
+    .list-item small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.65rem;
+      margin-top: 2px;
+    }
+    .search-box { width: 100%; margin-bottom: 8px; }
+
+    .section { display: none; }
+    .section.visible { display: block; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .tabs button {
+      flex: 1;
+      min-width: 70px;
+      padding: 7px;
+      background: var(--panel2);
+      border: 1px solid #333;
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .tabs button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .tip {
+      background: #1a2a1a;
+      border-left: 3px solid var(--ok);
+      padding: 8px 10px;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+    .tip strong { color: var(--ok); }
+
+    .big-note {
+      font-size: 3.5rem;
+      font-weight: 800;
+      text-align: center;
+      color: var(--accent2);
+      line-height: 1;
+      margin: 10px 0;
+    }
+    .cents {
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--muted);
+    }
+    .cents.in-tune { color: var(--ok); }
+    .wave-wrap {
+      height: 48px;
+      background: #111;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+
+    .detected-notes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0;
+      min-height: 36px;
+    }
+    .det-note {
+      background: #9b59b6;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .scale-match {
+      background: var(--panel2);
+      border: 1px solid var(--ok);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+    .scale-match h3 { color: var(--ok); margin-bottom: 4px; }
+    .scale-match.partial { border-color: var(--accent2); }
+    .scale-match.partial h3 { color: var(--accent2); }
+
+    .status { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--accent); }
+
+    .guide-block {
+      background: var(--panel2);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+    }
+    .guide-block h3 { color: var(--accent2); margin-bottom: 6px; font-size: 0.95rem; }
+
+    .progress-bar {
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress-bar > div {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .ex-card {
+      background: var(--panel2);
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .ex-card.done { border-color: var(--ok); opacity: 0.85; }
+    .ex-card h4 { font-size: 0.9rem; margin-bottom: 4px; }
+    .ex-card p { font-size: 0.78rem; color: var(--muted); }
+    .ex-card .tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 4px;
+      margin-top: 4px;
+    }
+    .ex-card .tag.metal { background: #3a1a1a; color: #e88; }
+    .ex-card .tag.vinkki { background: #1a2a1a; color: #8e8; }
+
+    footer {
+      text-align: center;
+      padding: 16px;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    @media (max-width: 600px) {
+      .string-row { height: 30px; }
+      .note-dot { width: 20px; height: 20px; font-size: 0.55rem; }
+      .ctrl { min-width: 90px; }
+      .big-note { font-size: 2.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Skaalalauta <span>skaalat · soinnut · treenit</span></div>
+    <nav>
+      <button class="nav-btn active" data-section="otelauta">Otelauta</button>
+      <button class="nav-btn" data-section="skaalat">Skaalat</button>
+      <button class="nav-btn" data-section="soinnut">Soinnut</button>
+      <button class="nav-btn" data-section="tunnistus">Tunnistus</button>
+      <button class="nav-btn" data-section="kuuntelu">Kuuntelu</button>
+      <button class="nav-btn" data-section="reeni">Reeni</button>
+      <button class="nav-btn" data-section="opas">Opas</button>
+      <button class="nav-btn" data-section="asetukset">Asetukset</button>
+    </nav>
+  </header>
+
+  <div class="container">
+
+    <!-- OTELAUTA -->
+    <section id="otelauta" class="section visible">
+      <div class="panel">
+        <h2>🎸 Otelauta</h2>
+        <div class="controls">
+          <div class="ctrl">
+            <label>Juuri</label>
+            <select id="root-note">
+              <option value="0">C</option><option value="1">C#</option><option value="2">D</option>
+              <option value="3">D#</option><option value="4" selected>E</option><option value="5">F</option>
+              <option value="6">F#</option><option value="7">G</option><option value="8">G#</option>
+              <option value="9">A</option><option value="10">A#</option><option value="11">B</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Näytä</label>
+            <select id="show-mode">
+              <option value="scale">Skaala</option>
+              <option value="chord">Sointu</option>
+              <option value="both">Molemmat</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Skaala</label>
+            <select id="scale-select"></select>
+          </div>
+          <div class="ctrl">
+            <label>Sointu</label>
+            <select id="chord-select"></select>
+          </div>
+          <div class="ctrl">
+            <label>Merkinnät</label>
+            <select id="label-mode">
+              <option value="notes">Nuotit</option>
+              <option value="degrees">Asteet</option>
+              <option value="intervals">Intervallit</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Oktaavit</label>
+            <select id="octave-count">
+              <option value="0">Kaikki</option>
+              <option value="1">1 oktaavi</option>
+              <option value="2" selected>2 oktaavia</option>
+              <option value="3">3 oktaavia</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Alkaen nauhasta</label>
+            <select id="octave-start">
+              <option value="0" selected>0 (avoin)</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="7">7</option>
+              <option value="9">9</option>
+              <option value="12">12</option>
+            </select>
+          </div>
+          <button class="action" id="play-scale-btn">▶ Soita</button>
+          <button class="action secondary" id="clear-hunt">Tyhjennä jahti</button>
+        </div>
+        <div class="info-row" id="scale-info"></div>
+      </div>
+      <div class="panel">
+        <div id="fretboard-wrap" style="--frets: 15">
+          <div id="fretboard"></div>
+          <div class="fret-numbers" id="fret-numbers"></div>
+        </div>
+        <div class="tip" id="fingering-tip"><strong>Vinkki:</strong> Valitse skaala tai sointu. Voit rajata näytön 1–3 oktaaviin ja valita lähtönauhan.</div>
+      </div>
+    </section>
+
+    <!-- SKAALAT -->
+    <section id="skaalat" class="section">
+      <div class="panel">
+        <h2>Skaalat</h2>
+        <input type="text" class="search-box" id="scale-search" placeholder="Hae: fryyginen, djent, Slayer, Gojira, harmonic, stoner..." />
+        <div class="tabs" id="scale-cats">
+          <button class="cat-btn active" data-cat="all">Kaikki</button>
+          <button class="cat-btn" data-cat="modes">Moodit</button>
+          <button class="cat-btn" data-cat="rock">Rock / Hard Rock</button>
+          <button class="cat-btn" data-cat="metal">Metalli</button>
+          <button class="cat-btn" data-cat="exotic">Eksotiikka</button>
+          <button class="cat-btn" data-cat="jazz">Jazz / Prog</button>
+        </div>
+        <div class="grid-list" id="scale-list"></div>
+      </div>
+    </section>
+
+    <!-- SOINNUT -->
+    <section id="soinnut" class="section">
+      <div class="panel">
+        <h2>Soinnut</h2>
+        <input type="text" class="search-box" id="chord-search" placeholder="Hae: power, minor, dim, sus..." />
+        <div class="tabs" id="chord-cats">
+          <button class="cat-btn active" data-cat="all">Kaikki</button>
+          <button class="cat-btn" data-cat="basic">Perus</button>
+          <button class="cat-btn" data-cat="metal">Metalli / Rock</button>
+          <button class="cat-btn" data-cat="extended">Laajennetut</button>
+        </div>
+        <div class="grid-list" id="chord-list"></div>
+      </div>
+    </section>
+
+    <!-- TUNNISTUS -->
+    <section id="tunnistus" class="section">
+      <div class="panel">
+        <h2>🔍 Skaalatunnistus – soita nuotteja</h2>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px">
+          Napauta otelaudan nuotteja peräkkäin (tai soita mikrofoniin / USB-äänilaitteeseen Kuuntelu-välilehdellä). Sovellus kertoo, mihin skaalaan ne sopivat parhaiten.
+        </p>
+        <div class="controls">
+          <button class="action" id="det-add-mode">Lisää nuotteja otelaudalta</button>
+          <button class="action secondary" id="det-clear">Tyhjennä</button>
+          <button class="action secondary" id="det-undo">Peru viimeinen</button>
+        </div>
+        <div class="detected-notes" id="det-notes"></div>
+        <div id="det-results"></div>
+        <div class="tip">
+          <strong>Miten:</strong> Mene Otelauta-välilehdelle, napauta nuotteja järjestyksessä. Palaa tänne nähdäksesi osumat. Voit myös lisätä nuotteja alla olevista napeista.
+        </div>
+        <div class="controls" style="margin-top:10px" id="quick-notes"></div>
+      </div>
+    </section>
+
+    <!-- KUUNTELU -->
+    <section id="kuuntelu" class="section">
+      <div class="panel">
+        <h2>🎤 Kuuntelu & Nuottijahti</h2>
+        <div class="controls">
+          <button class="action" id="mic-start">Käynnistä mikrofoni / USB</button>
+          <button class="action secondary" id="mic-stop">Pysäytä</button>
+          <button class="action secondary" id="start-hunt">Aloita nuottijahti</button>
+        </div>
+        <div class="big-note" id="heard-note">–</div>
+        <div class="cents" id="cents-display">sentit: –</div>
+        <div class="wave-wrap"><canvas id="wave-canvas"></canvas></div>
+        <div class="status" id="mic-status">Mikrofoni / USB ei käynnissä</div>
+        <div class="tip" style="margin-top:10px">
+          <strong>USB / M-Vave Ann Blackbox:</strong> Liitä USB-C:llä → Asetukset → valitse laite listasta → nosta Gain (2.5–4.0). Echo cancellation ja noise suppression on pois päältä instrumenttia varten. Chrome suositeltu. Soita yksi sävel kerrallaan.
+        </div>
+      </div>
+    </section>
+
+    <!-- REENI -->
+    <section id="reeni" class="section">
+      <div class="panel">
+        <h2>🏋️ Reenit & harjoitukset</h2>
+        <div class="tabs" id="ex-tabs">
+          <button class="ex-tab active" data-lvl="all">Kaikki</button>
+          <button class="ex-tab" data-lvl="alkeet">Alkeet</button>
+          <button class="ex-tab" data-lvl="keski">Keski</button>
+          <button class="ex-tab" data-lvl="edistynyt">Edistynyt</button>
+          <button class="ex-tab" data-lvl="metal">Metal / Rock</button>
+          <button class="ex-tab" data-lvl="vinkki">Vinkit & sormitukset</button>
+        </div>
+        <div class="controls" style="margin-bottom:10px">
+          <div class="ctrl">
+            <label>BPM</label>
+            <input type="number" id="bpm" value="80" min="40" max="240" style="width:70px" />
+          </div>
+          <button class="action secondary" id="metro-start">Metronomi</button>
+          <button class="action secondary" id="metro-stop">Stop</button>
+        </div>
+        <div id="ex-progress" style="font-size:0.8rem;color:var(--muted);margin-bottom:8px"></div>
+        <div class="progress-bar"><div id="ex-bar"></div></div>
+        <div id="ex-list" style="margin-top:12px;max-height:480px;overflow-y:auto"></div>
+      </div>
+    </section>
+
+    <!-- OPAS -->
+    <section id="opas" class="section">
+      <div class="panel">
+        <h2>📖 Opas</h2>
+        <div class="guide-block">
+          <h3>Aloitus</h3>
+          <p>Istu ryhdikkäästi, kitara tukevasti. Vire: E–A–D–G–B–E (tai drop D / drop C metallissa). Käytä viremittaria tai Kuuntelu-tilaa.</p>
+        </div>
+        <div class="guide-block">
+          <h3>Oktaavivalinta</h3>
+          <p>Otelaudalla voit valita montako oktaavia skaalasta näytetään ja mistä nauhasta alue alkaa. Näin näet vain sen osan, jota juuri harjoittelet – ei koko kaulan täyteyttä.</p>
+        </div>
+        <div class="guide-block">
+          <h3>Sormitukset</h3>
+          <p>Sama root eri sormella → eri asema. 2 nuottia/kieli vs 3NPS. String skipping avaa uusia fraaseja. Harjoittele molempia suuntia. Monet reenit sisältävät vaihtoehtoisia sormituksia (esim. aloita 1. tai 2. sormella).</p>
+        </div>
+        <div class="guide-block">
+          <h3>Bändihaku</h3>
+          <p>Skaalat-välilehdellä voit hakea bändin nimellä (Slayer, Gojira, Sabbath, Mastodon…). Saat skaalat, joista kyseinen tyyli usein ammentaa.</p>
+        </div>
+        <div class="guide-block">
+          <h3>USB-audio (M-Vave yms.)</h3>
+          <p>Liitä laite → Asetukset → valitse äänilaite → säädä Gain. Jos signaali on heikko tai hyppii, nosta gainia ja soita yksi sävel kerrallaan. Chrome toimii yleensä parhaiten Androidilla.</p>
+        </div>
+        <div class="guide-block">
+          <h3>Nopeus</h3>
+          <p>Aloita hitaasti metronomin kanssa. Nosta 4–8 bpm kun on puhdasta. 3 notes-per-string + economy/alternate picking. Nauhoita itsesi.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASETUKSET -->
+    <section id="asetukset" class="section">
+      <div class="panel">
+        <h2>⚙️ Asetukset</h2>
+        <div class="controls">
+          <div class="ctrl">
+            <label>Nauhat</label>
+            <select id="fret-count">
+              <option value="12">12</option>
+              <option value="15" selected>15</option>
+              <option value="18">18</option>
+              <option value="22">22</option>
+              <option value="24">24</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Vire</label>
+            <select id="tuning">
+              <option value="standard" selected>Standard (EADGBE)</option>
+              <option value="dropd">Drop D</option>
+              <option value="dropc">Drop C</option>
+              <option value="dadgad">DADGAD</option>
+              <option value="halfdown">Puoli sävel alas</option>
+              <option value="openg">Open G</option>
+              <option value="ebstandard">Eb Standard</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Kätisyys</label>
+            <select id="handed">
+              <option value="right" selected>Oikeakätinen</option>
+              <option value="left">Vasenkätinen</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Äänilaite (USB)</label>
+            <select id="audio-device"><option value="">Oletus / sisäinen</option></select>
+          </div>
+          <div class="ctrl">
+            <label>Gain</label>
+            <input type="range" id="gain" min="0.5" max="6" step="0.1" value="2.5" style="width:110px" />
+          </div>
+          <div class="ctrl">
+            <label>Herkkyys (RMS)</label>
+            <input type="range" id="rms-thresh" min="0.002" max="0.05" step="0.001" value="0.008" style="width:110px" />
+          </div>
+        </div>
+        <div class="tip" style="margin-top:12px">
+          <strong>USB-vinkki (M-Vave Ann Blackbox ym.):</strong> Liitä USB-C → valitse laite listasta → Gain 2.5–4.0 → herkkyys matalammaksi jos kohinaa. Echo cancellation / noise suppression / AGC pois. Päivitä laitelista painamalla "Käynnistä mikrofoni" uudelleen. Chrome suositeltu.
+        </div>
+        <div class="controls" style="margin-top:10px">
+          <button class="action secondary" id="refresh-devices">Päivitä äänilaitteet</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  <footer>Skaalalauta</footer>
+
+  <script>
+    // ==================== DATA ====================
+    const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const INTERVAL_NAMES = ["1","b2","2","b3","3","4","b5","5","b6","6","b7","7"];
+
+    const TUNINGS = {
+      standard: [4,9,2,7,11,4],
+      dropd:    [2,9,2,7,11,4],
+      dropc:    [0,7,0,5,9,2],
+      dadgad:   [2,9,2,7,9,2],
+      halfdown: [3,8,1,6,10,3],
+      openg:    [2,7,2,7,9,2],
+      ebstandard:[3,8,1,6,10,3]
+    };
+    let stringTuning = TUNINGS.standard.slice();
+    let stringNames = ["E","A","D","G","B","e"];
+
+    // Laaja skaalakirjasto – ei metalli ensimmäisenä listassa, kategoriat: modes, rock, metal, exotic, jazz
+    const SCALES = {
+      // Moodit / diatoniset
+      "Major (Ionian)": { int:[0,2,4,5,7,9,11], cat:"modes", tags:["pop","rock","major"], tip:"Perusduuri. Kirkas ja avoin." },
+      "Dorian": { int:[0,2,3,5,7,9,10], cat:"modes", tags:["rock","funk","prog","santana"], tip:"Kirkkaampi minor (luonnollinen 6). Santana, funk, prog." },
+      "Phrygian": { int:[0,1,3,5,7,8,10], cat:"metal", tags:["metal","black","thrash","slayer"], tip:"b2 = synkkä. Black/thrash. Soita myös 2. tai 3. sormella aloittamalla." },
+      "Lydian": { int:[0,2,4,6,7,9,11], cat:"modes", tags:["prog","vai","dream"], tip:"#4 unenomainen. Vai, Dream Theater." },
+      "Mixolydian": { int:[0,2,4,5,7,9,10], cat:"rock", tags:["rock","blues","southern"], tip:"Duuri b7:llä. Southern rock, blues-rock." },
+      "Natural Minor (Aeolian)": { int:[0,2,3,5,7,8,10], cat:"metal", tags:["metal","rock"], tip:"Yleisin 7-nuottinen metallissa ja rockissa." },
+      "Locrian": { int:[0,1,3,5,6,8,10], cat:"modes", tags:["metal","dark","jazz"], tip:"Pimein moodi. Harvoin kokonaan, usein osia." },
+
+      // Rock / Hard Rock / Blues
+      "Minor Pentatonic": { int:[0,3,5,7,10], cat:"rock", tags:["metal","rock","blues","stoner"], tip:"Metalin ja rockin perusta. 2 tai 3 nuottia/kieli. Box 1–5." },
+      "Major Pentatonic": { int:[0,2,4,7,9], cat:"rock", tags:["rock","country","southern"], tip:"Kirkas pentatonic. Country-rock, etelä." },
+      "Blues Scale": { int:[0,3,5,6,7,10], cat:"rock", tags:["metal","blues","stoner","doom"], tip:"b5 = blue note. Stoner/doom-riffeihin." },
+      "Major Blues": { int:[0,2,3,4,7,9], cat:"rock", tags:["blues","rock"], tip:"Duuri + b3. Blues-soloihin." },
+      "Rock Minor": { int:[0,2,3,5,7,9,10], cat:"rock", tags:["rock","hardrock"], tip:"Dorian-painotteinen rock-minor." },
+
+      // Metalli-erikoisuudet
+      "Harmonic Minor": { int:[0,2,3,5,7,8,11], cat:"metal", tags:["metal","neoclassical","yngwie","rhoads"], tip:"Korotettu 7. Dramaattinen. Yngwie, Rhoads. 3NPS toimii hyvin." },
+      "Phrygian Dominant": { int:[0,1,4,5,7,8,10], cat:"metal", tags:["metal","maiden","exotic","bodom"], tip:"Powerslave-soundi. Itämainen metal. Harmonic minorin 5. moodi." },
+      "Melodic Minor": { int:[0,2,3,5,7,9,11], cat:"jazz", tags:["jazz","prog","metal"], tip:"Nouseva melodic. Modern metal, jazz." },
+      "Hungarian Minor": { int:[0,2,3,6,7,8,11], cat:"exotic", tags:["metal","exotic","megadeth"], tip:"Harmonic + #4. Broderick / Megadeth-tyyli." },
+      "Half-Whole Dim": { int:[0,1,3,4,6,7,9,10], cat:"metal", tags:["metal","jazz","djent","shred"], tip:"Symmetrinen. Diminished-juoksut, djent-täytteet." },
+      "Whole-Half Dim": { int:[0,2,3,5,6,8,9,11], cat:"metal", tags:["metal","neoclassical","shred"], tip:"Toinen diminished. Neoclassical-juoksut." },
+      "Chromatic": { int:[0,1,2,3,4,5,6,7,8,9,10,11], cat:"metal", tags:["technique","shred"], tip:"Tekniikkaharjoitus. Chromatic runs metallissa." },
+      "Super Locrian": { int:[0,1,3,4,6,8,10], cat:"jazz", tags:["jazz","metal","altered"], tip:"Altered scale. Dom7alt-sointujen yli." },
+      "Lydian Dominant": { int:[0,2,4,6,7,9,10], cat:"jazz", tags:["jazz","prog","fusion"], tip:"#4 + b7. Fusion, modern prog." },
+      "Dorian b2": { int:[0,1,3,5,7,9,10], cat:"jazz", tags:["jazz","metal"], tip:"Melodic minorin 2. moodi." },
+      "Mixolydian b6": { int:[0,2,4,5,7,8,10], cat:"jazz", tags:["jazz","prog"], tip:"Melodic minorin 5. moodi." },
+
+      // Eksotiikka
+      "Gypsy Scale": { int:[0,1,4,5,7,8,11], cat:"exotic", tags:["exotic","blackmore","rainbow"], tip:"Gates of Babylon. Double harmonic -sukuinen." },
+      "Persian": { int:[0,1,4,5,6,8,11], cat:"exotic", tags:["exotic","metal"], tip:"Tritone + itämainen väri." },
+      "Double Harmonic": { int:[0,1,4,5,7,8,11], cat:"exotic", tags:["exotic","byzantine"], tip:"Byzantine / double harmonic. Erittäin itämainen." },
+      "Hirajoshi": { int:[0,2,3,7,8], cat:"exotic", tags:["exotic","friedman","japan"], tip:"Japanilainen. Marty Friedman -tyyli." },
+      "Japanese In Sen": { int:[0,1,5,7,10], cat:"exotic", tags:["exotic","japan"], tip:"Itämainen pentatonic." },
+      "Kumoi": { int:[0,2,3,7,9], cat:"exotic", tags:["exotic","japan"], tip:"Toinen japanilainen pentatonic." },
+      "Iwato": { int:[0,1,5,6,10], cat:"exotic", tags:["exotic","japan"], tip:"Synkkä japanilainen." },
+      "Whole Tone": { int:[0,2,4,6,8,10], cat:"exotic", tags:["experimental","debussy"], tip:"Kaikki kokoaskeleita. Unenomainen / epävakaa." },
+      "Enigmatic": { int:[0,1,4,6,8,9,11], cat:"exotic", tags:["exotic","experimental"], tip:"Harvinainen, jännittävä." },
+      "Neapolitan Minor": { int:[0,1,3,5,7,8,11], cat:"exotic", tags:["classical","metal"], tip:"b2 + harmonic minor -väri." },
+      "Neapolitan Major": { int:[0,1,3,5,7,9,11], cat:"exotic", tags:["classical","jazz"], tip:"b2 + melodic -väri." },
+      "Ukrainian Dorian": { int:[0,2,3,6,7,9,10], cat:"exotic", tags:["folk","metal"], tip:"#4 dorianissa. Folk-metal." },
+      "Romanian Minor": { int:[0,2,3,6,7,9,10], cat:"exotic", tags:["folk","gypsy"], tip:"Sama kuin Ukrainian Dorian – gypsy-jazz / folk." },
+      "Spanish Phrygian": { int:[0,1,4,5,7,8,10], cat:"exotic", tags:["flamenco","metal"], tip:"Sama kuin Phrygian Dominant – flamenco / metal." },
+      "Byzantine": { int:[0,1,4,5,7,8,11], cat:"exotic", tags:["exotic","byzantine"], tip:"Double harmonic." },
+      "Arabian": { int:[0,2,4,5,6,8,10], cat:"exotic", tags:["exotic"], tip:"Major + b5 + b6 -väri." },
+      "Oriental": { int:[0,1,4,5,6,9,10], cat:"exotic", tags:["exotic"], tip:"Itämainen dominanttiväri." },
+      "Hindu": { int:[0,2,4,5,7,8,10], cat:"exotic", tags:["exotic"], tip:"Mixolydian b6." },
+      "Jewish Scale": { int:[0,1,4,5,7,8,10], cat:"exotic", tags:["klezmer","exotic"], tip:"Phrygian Dominant – klezmer / itä." },
+
+      // Jazz / Prog lisät
+      "Bebop Dominant": { int:[0,2,4,5,7,9,10,11], cat:"jazz", tags:["jazz","bebop"], tip:"Mixolydian + major 7 passing." },
+      "Bebop Major": { int:[0,2,4,5,7,8,9,11], cat:"jazz", tags:["jazz","bebop"], tip:"Major + #5 passing." },
+      "Bebop Minor": { int:[0,2,3,4,5,7,9,10], cat:"jazz", tags:["jazz"], tip:"Dorian + major 3 passing." },
+      "Lydian Augmented": { int:[0,2,4,6,8,9,11], cat:"jazz", tags:["jazz","modern"], tip:"Melodic minorin 3. moodi." },
+      "Altered Dominant": { int:[0,1,3,4,6,8,10], cat:"jazz", tags:["jazz","metal"], tip:"Super Locrian – alt-dominantit." },
+      "Half Diminished": { int:[0,2,3,5,6,8,10], cat:"jazz", tags:["jazz"], tip:"Locrian ♮2 (melodic minor 6)." },
+      "Major 6 diminished": { int:[0,2,4,5,7,8,9,11], cat:"jazz", tags:["jazz","barry"], tip:"Barry Harris -tyyli." },
+
+      // Lisää metalli / modern
+      "Minor 6 Pentatonic": { int:[0,3,5,7,9], cat:"metal", tags:["metal","modern","djent"], tip:"Minor penta + 6. Modern metal / djent." },
+      "Major b6 Pentatonic": { int:[0,2,4,7,8], cat:"exotic", tags:["exotic"], tip:"Harvinainen pentatonic-väri." },
+      "Egyptian": { int:[0,2,5,7,10], cat:"exotic", tags:["exotic","folk"], tip:"Suspended-pentatonic." },
+      "Ritusen": { int:[0,2,5,7,9], cat:"exotic", tags:["japan"], tip:"Japanilainen major-tyylinen." },
+      "Prometheus": { int:[0,2,4,6,9,10], cat:"exotic", tags:["scriabin","experimental"], tip:"Scriabin – mystinen." },
+      "Tritone Scale": { int:[0,1,4,6,7,10], cat:"metal", tags:["metal","jazz"], tip:"Symmetrinen tritone-jako." },
+      "Augmented Scale": { int:[0,3,4,7,8,11], cat:"exotic", tags:["jazz","experimental"], tip:"Symmetrinen augmented." },
+      "Leading Whole Tone": { int:[0,2,4,6,8,10,11], cat:"exotic", tags:["experimental"], tip:"Whole tone + leading tone." },
+      "Overtone": { int:[0,2,4,6,7,9,10], cat:"jazz", tags:["jazz","acoustic"], tip:"Lydian Dominant – akustinen sarja." },
+      "Pelog": { int:[0,1,3,7,8], cat:"exotic", tags:["gamelan","exotic"], tip:"Indonesian pelog-väri." },
+      "Slendro": { int:[0,2,5,7,9], cat:"exotic", tags:["gamelan"], tip:"Gamelan-tyylinen." },
+      "Yo Scale": { int:[0,2,5,7,9], cat:"exotic", tags:["japan"], tip:"Japanilainen yo." },
+      "In Scale": { int:[0,1,5,7,8], cat:"exotic", tags:["japan"], tip:"Japanilainen in." },
+      "Harmonic Major": { int:[0,2,4,5,7,8,11], cat:"jazz", tags:["jazz","classical"], tip:"Major + b6. Harvinainen mutta kaunis." },
+      "Double Harmonic Minor": { int:[0,2,3,6,7,8,11], cat:"exotic", tags:["metal","exotic"], tip:"Hungarian minor -sukuinen." },
+      "Ultralocrian": { int:[0,1,3,4,6,8,9], cat:"jazz", tags:["jazz","metal"], tip:"Harmonic minorin 7. moodi." },
+      "Locrian ♮6": { int:[0,1,3,5,6,9,10], cat:"jazz", tags:["jazz"], tip:"Harmonic minorin 2. moodi." },
+      "Ionian #5": { int:[0,2,4,5,8,9,11], cat:"jazz", tags:["jazz"], tip:"Harmonic minorin 3. moodi." },
+      "Dorian #4": { int:[0,2,3,6,7,9,10], cat:"jazz", tags:["jazz","metal"], tip:"Harmonic minorin 4. moodi = Romanian." },
+      "Phrygian Dominant (HMin)": { int:[0,1,4,5,7,8,10], cat:"metal", tags:["metal","maiden"], tip:"Harmonic minor 5 – sama Phrygian Dominant." },
+      "Lydian #2": { int:[0,3,4,6,7,9,11], cat:"jazz", tags:["jazz"], tip:"Harmonic minorin 6. moodi." },
+      "Pentatonic Neutral": { int:[0,2,5,7,10], cat:"rock", tags:["folk","rock"], tip:"Suspended pentatonic – folk/rock." },
+      "Blues Major Hexatonic": { int:[0,2,3,4,7,9], cat:"rock", tags:["blues"], tip:"Major blues." },
+      "Minor Hexatonic": { int:[0,2,3,5,7,10], cat:"rock", tags:["rock","metal"], tip:"Aeolian ilman 6." },
+      "Dominant Pentatonic": { int:[0,2,4,7,10], cat:"rock", tags:["rock","funk"], tip:"Mixolydian-pentatonic." },
+      "Kumoijoshi": { int:[0,2,3,7,9], cat:"exotic", tags:["japan"], tip:"Kumoi-variantti." },
+      "Iwato (alt)": { int:[0,1,5,6,10], cat:"exotic", tags:["japan"], tip:"Iwato." },
+      "Messiaen Mode 3": { int:[0,2,3,4,6,7,8,10,11], cat:"exotic", tags:["classical","experimental"], tip:"Symmetrinen Messiaen." },
+      "Messiaen Mode 2": { int:[0,1,3,4,6,7,9,10], cat:"exotic", tags:["classical","metal"], tip:"Half-whole diminished = Messiaen 2." },
+      "Acoustic Scale": { int:[0,2,4,6,7,9,10], cat:"jazz", tags:["jazz","acoustic"], tip:"Overtone / Lydian Dominant." },
+      "Hungarian Major": { int:[0,3,4,6,7,9,10], cat:"exotic", tags:["folk","exotic"], tip:"Unkarilainen duuri-väri." },
+      "Greek Dorian": { int:[0,2,3,5,7,9,10], cat:"modes", tags:["greek","modes"], tip:"Sama kuin Dorian." },
+      "Flamenco Mode": { int:[0,1,4,5,7,8,10], cat:"exotic", tags:["flamenco"], tip:"Phrygian Dominant – flamenco." },
+      "Balinese": { int:[0,1,3,7,8], cat:"exotic", tags:["gamelan"], tip:"Balilainen pelog-tyyli." },
+      "Chinese": { int:[0,2,4,7,9], cat:"exotic", tags:["china"], tip:"Major pentatonic – kiinalainen." },
+      "Mongolian": { int:[0,2,4,7,9], cat:"exotic", tags:["mongolia"], tip:"Major pentatonic." },
+      "Hindustani": { int:[0,2,3,5,7,8,10], cat:"exotic", tags:["india"], tip:"Asavari / natural minor -väri." },
+      "Raga Todi": { int:[0,1,3,6,7,8,11], cat:"exotic", tags:["india"], tip:"Todi-raaga – hyvin itämainen." },
+      "Raga Bhairav": { int:[0,1,4,5,7,8,11], cat:"exotic", tags:["india"], tip:"Bhairav = double harmonic." },
+      "Symmetrical Decatonic": { int:[0,1,2,4,5,6,7,9,10,11], cat:"exotic", tags:["experimental"], tip:"Lähes kromaattinen symmetrinen." },
+      "Composite Blues": { int:[0,2,3,4,5,6,7,9,10], cat:"rock", tags:["blues","jazz"], tip:"Blues + major/minor yhdistelmä." },
+      "Shred Minor": { int:[0,2,3,5,7,8,11], cat:"metal", tags:["metal","shred","neoclassical"], tip:"Harmonic minor – shred-juoksut." },
+      "Djent Scale": { int:[0,1,3,5,6,8,10], cat:"metal", tags:["djent","metal","modern"], tip:"Locrian / phrygian -painotteinen modern metal." },
+      "Stoner Blues": { int:[0,3,5,6,7,10], cat:"rock", tags:["stoner","doom","blues"], tip:"Blues scale – stoner/doom." },
+      "Doom Minor": { int:[0,2,3,5,7,8,10], cat:"metal", tags:["doom","stoner","metal"], tip:"Aeolian – raskas ja hidas." },
+      "Thrash Phrygian": { int:[0,1,3,5,7,8,10], cat:"metal", tags:["thrash","slayer","metal"], tip:"Phrygian – thrash-riffit." },
+      "Black Metal Aeolian": { int:[0,2,3,5,7,8,10], cat:"metal", tags:["black","metal"], tip:"Aeolian – black metal -tremolot." },
+      "Power Metal Harmonic": { int:[0,2,3,5,7,8,11], cat:"metal", tags:["powermetal","metal"], tip:"Harmonic minor – power metal -solot." },
+      "Prog Lydian": { int:[0,2,4,6,7,9,11], cat:"jazz", tags:["prog","dream","vai"], tip:"Lydian – prog-kitarat." },
+      "Fusion Mixolydian": { int:[0,2,4,5,7,9,10], cat:"jazz", tags:["fusion","rock"], tip:"Mixolydian – fusion-solot." },
+      "Hard Rock Minor Penta": { int:[0,3,5,7,10], cat:"rock", tags:["hardrock","rock","metal"], tip:"Minor pentatonic – hard rock -klassikko." },
+      "Southern Mixo": { int:[0,2,4,5,7,9,10], cat:"rock", tags:["southern","rock"], tip:"Mixolydian – southern rock." }
+    };
+
+    const CHORDS = {
+      "Power (5)": { int:[0,7], cat:"metal", tags:["metal","rock"] },
+      "Power + octave": { int:[0,7,12], cat:"metal", tags:["metal"] },
+      "Tritone": { int:[0,6], cat:"metal", tags:["metal","doom"] },
+      "Minor": { int:[0,3,7], cat:"metal", tags:["metal","rock"] },
+      "Major": { int:[0,4,7], cat:"basic", tags:["pop","rock"] },
+      "Minor 7": { int:[0,3,7,10], cat:"basic", tags:["rock","jazz"] },
+      "Dominant 7": { int:[0,4,7,10], cat:"basic", tags:["blues","rock"] },
+      "Major 7": { int:[0,4,7,11], cat:"extended", tags:["jazz","pop"] },
+      "Diminished": { int:[0,3,6], cat:"metal", tags:["metal","classical"] },
+      "Diminished 7": { int:[0,3,6,9], cat:"metal", tags:["metal","neoclassical"] },
+      "Augmented": { int:[0,4,8], cat:"extended", tags:["experimental"] },
+      "Sus2": { int:[0,2,7], cat:"basic", tags:["rock","prog"] },
+      "Sus4": { int:[0,5,7], cat:"basic", tags:["rock"] },
+      "Add9": { int:[0,4,7,14], cat:"extended", tags:["rock","pop"] },
+      "Minor add9": { int:[0,3,7,14], cat:"extended", tags:["metal","prog"] },
+      "m7b5": { int:[0,3,6,10], cat:"extended", tags:["jazz","metal"] },
+      "9": { int:[0,4,7,10,14], cat:"extended", tags:["funk","rock"] },
+      "m9": { int:[0,3,7,10,14], cat:"extended", tags:["jazz","prog"] },
+      "11": { int:[0,4,7,10,14,17], cat:"extended", tags:["jazz"] },
+      "m11": { int:[0,3,7,10,14,17], cat:"extended", tags:["jazz","prog"] },
+      "13": { int:[0,4,7,10,14,21], cat:"extended", tags:["jazz"] },
+      "Power sus2": { int:[0,2,7], cat:"metal", tags:["metal","modern"] },
+      "Minor 6": { int:[0,3,7,9], cat:"basic", tags:["jazz","rock"] },
+      "Major 6": { int:[0,4,7,9], cat:"basic", tags:["jazz","rock"] },
+      "Augmented 7": { int:[0,4,8,10], cat:"extended", tags:["jazz"] },
+      "Half-diminished": { int:[0,3,6,10], cat:"extended", tags:["jazz"] }
+    };
+
+    // Bändihaku – metalli, hard rock, stoner, doom, thrash, prog...
+    const BAND_HINTS = {
+      "metallica": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)","Phrygian","Chromatic"],
+      "slayer": ["Phrygian","Thrash Phrygian","Natural Minor (Aeolian)","Locrian","Chromatic"],
+      "maiden": ["Phrygian Dominant","Harmonic Minor","Natural Minor (Aeolian)","Power Metal Harmonic"],
+      "iron maiden": ["Phrygian Dominant","Harmonic Minor","Natural Minor (Aeolian)"],
+      "megadeth": ["Harmonic Minor","Hungarian Minor","Phrygian","Natural Minor (Aeolian)","Chromatic"],
+      "yngwie": ["Harmonic Minor","Phrygian Dominant","Melodic Minor","Shred Minor"],
+      "malmsteen": ["Harmonic Minor","Phrygian Dominant","Melodic Minor"],
+      "black sabbath": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)","Doom Minor","Stoner Blues"],
+      "sabbath": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)","Doom Minor"],
+      "ozzy": ["Minor Pentatonic","Harmonic Minor","Natural Minor (Aeolian)","Blues Scale"],
+      "rhoads": ["Harmonic Minor","Phrygian Dominant","Natural Minor (Aeolian)"],
+      "randy rhoads": ["Harmonic Minor","Phrygian Dominant"],
+      "dimebag": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "pantera": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)","Chromatic"],
+      "opeth": ["Natural Minor (Aeolian)","Dorian","Phrygian","Melodic Minor","Locrian"],
+      "djent": ["Half-Whole Dim","Phrygian","Locrian","Natural Minor (Aeolian)","Djent Scale","Minor 6 Pentatonic"],
+      "gojira": ["Phrygian","Locrian","Natural Minor (Aeolian)","Djent Scale","Chromatic"],
+      "meshuggah": ["Half-Whole Dim","Phrygian","Locrian","Djent Scale","Chromatic"],
+      "bodom": ["Harmonic Minor","Phrygian Dominant","Shred Minor"],
+      "children of bodom": ["Harmonic Minor","Phrygian Dominant"],
+      "blackmore": ["Gypsy Scale","Harmonic Minor","Phrygian Dominant","Mixolydian"],
+      "rainbow": ["Gypsy Scale","Harmonic Minor","Phrygian Dominant"],
+      "deep purple": ["Minor Pentatonic","Blues Scale","Mixolydian","Natural Minor (Aeolian)"],
+      "led zeppelin": ["Minor Pentatonic","Blues Scale","Dorian","Mixolydian","Major Pentatonic"],
+      "zeppelin": ["Minor Pentatonic","Blues Scale","Dorian","Mixolydian"],
+      "jimmy page": ["Minor Pentatonic","Blues Scale","Dorian","Mixolydian"],
+      "pink floyd": ["Minor Pentatonic","Dorian","Mixolydian","Natural Minor (Aeolian)"],
+      "gilmour": ["Minor Pentatonic","Dorian","Blues Scale","Mixolydian"],
+      "van halen": ["Minor Pentatonic","Blues Scale","Major Pentatonic","Mixolydian"],
+      "eddie": ["Minor Pentatonic","Blues Scale","Major Pentatonic"],
+      "steve vai": ["Lydian","Melodic Minor","Harmonic Minor","Prog Lydian"],
+      "vai": ["Lydian","Melodic Minor","Prog Lydian"],
+      "satriani": ["Lydian","Mixolydian","Minor Pentatonic","Melodic Minor"],
+      "joe satriani": ["Lydian","Mixolydian","Minor Pentatonic"],
+      "dream theater": ["Lydian","Melodic Minor","Harmonic Minor","Prog Lydian","Chromatic"],
+      "petrucci": ["Lydian","Melodic Minor","Harmonic Minor","Chromatic"],
+      "tool": ["Dorian","Natural Minor (Aeolian)","Phrygian","Minor Pentatonic"],
+      "mastodon": ["Natural Minor (Aeolian)","Phrygian","Dorian","Blues Scale","Stoner Blues"],
+      "sleep": ["Blues Scale","Minor Pentatonic","Stoner Blues","Doom Minor"],
+      "electric wizard": ["Blues Scale","Minor Pentatonic","Doom Minor","Stoner Blues"],
+      "kyuss": ["Blues Scale","Minor Pentatonic","Stoner Blues","Mixolydian"],
+      "queens of the stone age": ["Minor Pentatonic","Blues Scale","Mixolydian","Stoner Blues"],
+      "qotsa": ["Minor Pentatonic","Blues Scale","Mixolydian"],
+      "acid bath": ["Blues Scale","Minor Pentatonic","Doom Minor"],
+      "candlemass": ["Natural Minor (Aeolian)","Doom Minor","Harmonic Minor"],
+      "paradise lost": ["Natural Minor (Aeolian)","Doom Minor","Phrygian"],
+      "my dying bride": ["Natural Minor (Aeolian)","Harmonic Minor","Doom Minor"],
+      "sludge": ["Blues Scale","Minor Pentatonic","Stoner Blues","Doom Minor"],
+      "stoner": ["Blues Scale","Minor Pentatonic","Stoner Blues","Mixolydian"],
+      "doom": ["Doom Minor","Natural Minor (Aeolian)","Blues Scale","Stoner Blues"],
+      "thrash": ["Phrygian","Thrash Phrygian","Natural Minor (Aeolian)","Chromatic"],
+      "death": ["Harmonic Minor","Phrygian","Natural Minor (Aeolian)","Locrian","Chromatic"],
+      "death metal": ["Harmonic Minor","Phrygian","Locrian","Natural Minor (Aeolian)"],
+      "black metal": ["Natural Minor (Aeolian)","Phrygian","Locrian","Black Metal Aeolian","Harmonic Minor"],
+      "mayhem": ["Natural Minor (Aeolian)","Phrygian","Black Metal Aeolian"],
+      "emperor": ["Harmonic Minor","Phrygian","Natural Minor (Aeolian)"],
+      "immortal": ["Natural Minor (Aeolian)","Phrygian","Black Metal Aeolian"],
+      "behemoth": ["Phrygian","Harmonic Minor","Locrian","Natural Minor (Aeolian)"],
+      "nile": ["Phrygian Dominant","Double Harmonic","Harmonic Minor","Persian"],
+      "melechesh": ["Phrygian Dominant","Double Harmonic","Persian","Gypsy Scale"],
+      "orhan": ["Phrygian Dominant","Double Harmonic","Persian"],
+      "soulfly": ["Phrygian","Natural Minor (Aeolian)","Minor Pentatonic"],
+      "sepultura": ["Phrygian","Natural Minor (Aeolian)","Minor Pentatonic","Blues Scale"],
+      "slipknot": ["Phrygian","Natural Minor (Aeolian)","Chromatic","Locrian"],
+      "korn": ["Phrygian","Natural Minor (Aeolian)","Minor Pentatonic"],
+      "deftones": ["Dorian","Natural Minor (Aeolian)","Minor Pentatonic"],
+      "rammstein": ["Natural Minor (Aeolian)","Phrygian","Minor Pentatonic"],
+      "motorhead": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "acdc": ["Minor Pentatonic","Blues Scale","Major Pentatonic","Mixolydian"],
+      "ac/dc": ["Minor Pentatonic","Blues Scale","Major Pentatonic"],
+      "guns n roses": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)","Major Pentatonic"],
+      "slash": ["Minor Pentatonic","Blues Scale","Major Pentatonic","Natural Minor (Aeolian)"],
+      "aerosmith": ["Minor Pentatonic","Blues Scale","Major Pentatonic"],
+      "joe perry": ["Minor Pentatonic","Blues Scale"],
+      "thin lizzy": ["Minor Pentatonic","Dorian","Mixolydian","Natural Minor (Aeolian)"],
+      "judas priest": ["Natural Minor (Aeolian)","Harmonic Minor","Minor Pentatonic","Phrygian"],
+      "priest": ["Natural Minor (Aeolian)","Harmonic Minor","Minor Pentatonic"],
+      "accept": ["Natural Minor (Aeolian)","Minor Pentatonic","Harmonic Minor"],
+      "scorpions": ["Natural Minor (Aeolian)","Minor Pentatonic","Harmonic Minor","Major Pentatonic"],
+      "ufo": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "michael schenker": ["Minor Pentatonic","Harmonic Minor","Natural Minor (Aeolian)"],
+      "rainbow": ["Gypsy Scale","Harmonic Minor","Phrygian Dominant","Mixolydian"],
+      "dio": ["Natural Minor (Aeolian)","Harmonic Minor","Phrygian","Minor Pentatonic"],
+      "heaven and hell": ["Natural Minor (Aeolian)","Harmonic Minor","Doom Minor"],
+      "trinity": ["Natural Minor (Aeolian)","Phrygian"],
+      "lamb of god": ["Phrygian","Natural Minor (Aeolian)","Chromatic","Locrian"],
+      "machine head": ["Phrygian","Natural Minor (Aeolian)","Minor Pentatonic"],
+      "trivium": ["Harmonic Minor","Phrygian","Natural Minor (Aeolian)","Melodic Minor"],
+      "as i lay dying": ["Phrygian","Harmonic Minor","Natural Minor (Aeolian)"],
+      "parkway drive": ["Phrygian","Natural Minor (Aeolian)","Chromatic"],
+      "architects": ["Phrygian","Locrian","Natural Minor (Aeolian)","Djent Scale"],
+      "periphery": ["Half-Whole Dim","Lydian","Melodic Minor","Djent Scale","Chromatic"],
+      "animals as leaders": ["Lydian","Melodic Minor","Half-Whole Dim","Chromatic","Whole Tone"],
+      "tesseract": ["Dorian","Melodic Minor","Lydian","Djent Scale"],
+      "born of osiris": ["Phrygian","Harmonic Minor","Melodic Minor","Djent Scale"],
+      "between the buried": ["Lydian","Melodic Minor","Harmonic Minor","Chromatic","Prog Lydian"],
+      "btbam": ["Lydian","Melodic Minor","Harmonic Minor","Chromatic"],
+      "haken": ["Lydian","Melodic Minor","Dorian","Prog Lydian"],
+      "steven wilson": ["Dorian","Natural Minor (Aeolian)","Lydian","Mixolydian"],
+      "porcupine tree": ["Dorian","Natural Minor (Aeolian)","Mixolydian"],
+      "rush": ["Mixolydian","Dorian","Natural Minor (Aeolian)","Major (Ionian)"],
+      "alex lifeson": ["Mixolydian","Dorian","Major Pentatonic"],
+      "yes": ["Mixolydian","Lydian","Major (Ionian)","Dorian"],
+      "king crimson": ["Whole Tone","Lydian","Phrygian","Locrian","Melodic Minor"],
+      "fripp": ["Whole Tone","Lydian","Phrygian","Locrian"],
+      "frank zappa": ["Lydian","Mixolydian","Melodic Minor","Chromatic","Altered Dominant"],
+      "zappa": ["Lydian","Mixolydian","Melodic Minor","Chromatic"],
+      "guthrie govan": ["Lydian","Melodic Minor","Harmonic Minor","Mixolydian","Chromatic"],
+      "govan": ["Lydian","Melodic Minor","Harmonic Minor"],
+      "plini": ["Lydian","Melodic Minor","Dorian","Prog Lydian"],
+      "polyphia": ["Lydian","Melodic Minor","Chromatic","Half-Whole Dim"],
+      "tim henson": ["Lydian","Melodic Minor","Chromatic"],
+      "jason richardson": ["Harmonic Minor","Phrygian Dominant","Shred Minor","Chromatic"],
+      "angel vivaldi": ["Harmonic Minor","Lydian","Melodic Minor","Shred Minor"],
+      "jeff loomis": ["Harmonic Minor","Phrygian Dominant","Shred Minor","Chromatic"],
+      "nevermore": ["Harmonic Minor","Phrygian","Natural Minor (Aeolian)"],
+      "marty friedman": ["Hirajoshi","Japanese In Sen","Harmonic Minor","Phrygian Dominant","Gypsy Scale"],
+      "friedman": ["Hirajoshi","Harmonic Minor","Phrygian Dominant"],
+      "jason becker": ["Harmonic Minor","Phrygian Dominant","Shred Minor","Chromatic"],
+      "paul gilbert": ["Minor Pentatonic","Blues Scale","Harmonic Minor","Chromatic","Major Pentatonic"],
+      "gilbert": ["Minor Pentatonic","Blues Scale","Chromatic"],
+      "john petrucci": ["Lydian","Melodic Minor","Harmonic Minor","Chromatic"],
+      "synyster gates": ["Harmonic Minor","Phrygian Dominant","Natural Minor (Aeolian)","Chromatic"],
+      "avenged sevenfold": ["Harmonic Minor","Phrygian Dominant","Natural Minor (Aeolian)"],
+      "a7x": ["Harmonic Minor","Phrygian Dominant","Natural Minor (Aeolian)"],
+      "bullet for my valentine": ["Natural Minor (Aeolian)","Phrygian","Harmonic Minor"],
+      "trinket": ["Natural Minor (Aeolian)","Phrygian"],
+      "killswitch engage": ["Phrygian","Natural Minor (Aeolian)","Harmonic Minor"],
+      "as i lay dying": ["Phrygian","Harmonic Minor","Natural Minor (Aeolian)"],
+      "all that remains": ["Phrygian","Natural Minor (Aeolian)"],
+      "unearthed": ["Phrygian","Natural Minor (Aeolian)"],
+      "whitechapel": ["Phrygian","Locrian","Natural Minor (Aeolian)","Chromatic"],
+      "suicide silence": ["Phrygian","Locrian","Chromatic"],
+      "cattle decapitation": ["Phrygian","Locrian","Harmonic Minor","Chromatic"],
+      "cannibal corpse": ["Phrygian","Locrian","Chromatic","Natural Minor (Aeolian)"],
+      "morbid angel": ["Phrygian","Locrian","Harmonic Minor","Chromatic"],
+      "obituary": ["Phrygian","Natural Minor (Aeolian)","Blues Scale"],
+      "deicide": ["Phrygian","Locrian","Chromatic"],
+      "behemoth": ["Phrygian","Harmonic Minor","Locrian"],
+      "dimmu borgir": ["Harmonic Minor","Phrygian","Natural Minor (Aeolian)"],
+      "cradle of filth": ["Harmonic Minor","Phrygian","Natural Minor (Aeolian)"],
+      "nightwish": ["Harmonic Minor","Natural Minor (Aeolian)","Phrygian Dominant","Power Metal Harmonic"],
+      "epica": ["Harmonic Minor","Natural Minor (Aeolian)","Phrygian Dominant"],
+      "within temptation": ["Natural Minor (Aeolian)","Harmonic Minor","Dorian"],
+      "sonata arctica": ["Harmonic Minor","Natural Minor (Aeolian)","Power Metal Harmonic"],
+      "stratovarius": ["Harmonic Minor","Natural Minor (Aeolian)","Power Metal Harmonic"],
+      "hammerfall": ["Natural Minor (Aeolian)","Harmonic Minor","Minor Pentatonic"],
+      "blind guardian": ["Harmonic Minor","Natural Minor (Aeolian)","Phrygian Dominant"],
+      "helloween": ["Natural Minor (Aeolian)","Harmonic Minor","Minor Pentatonic"],
+      "gamma ray": ["Natural Minor (Aeolian)","Harmonic Minor"],
+      "running wild": ["Natural Minor (Aeolian)","Minor Pentatonic","Mixolydian"],
+      "manowar": ["Natural Minor (Aeolian)","Minor Pentatonic","Harmonic Minor"],
+      "bathory": ["Natural Minor (Aeolian)","Phrygian","Black Metal Aeolian"],
+      "celtic frost": ["Natural Minor (Aeolian)","Phrygian","Doom Minor"],
+      "venom": ["Natural Minor (Aeolian)","Phrygian","Minor Pentatonic"],
+      "motörhead": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "motorhead": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "lemmy": ["Minor Pentatonic","Blues Scale"],
+      "wolfmother": ["Minor Pentatonic","Blues Scale","Mixolydian","Stoner Blues"],
+      "clutch": ["Minor Pentatonic","Blues Scale","Mixolydian","Stoner Blues"],
+      "fu manchu": ["Minor Pentatonic","Blues Scale","Stoner Blues"],
+      "monster magnet": ["Blues Scale","Minor Pentatonic","Stoner Blues","Doom Minor"],
+      "orange goblin": ["Blues Scale","Minor Pentatonic","Stoner Blues"],
+      "elder": ["Dorian","Natural Minor (Aeolian)","Mixolydian","Stoner Blues"],
+      "all them witches": ["Minor Pentatonic","Blues Scale","Dorian","Stoner Blues"],
+      "khruangbin": ["Dorian","Mixolydian","Minor Pentatonic","Major Pentatonic"],
+      "black keys": ["Minor Pentatonic","Blues Scale","Major Pentatonic"],
+      "royal blood": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "greta van fleet": ["Minor Pentatonic","Blues Scale","Mixolydian","Major Pentatonic"],
+      "rival sons": ["Minor Pentatonic","Blues Scale","Mixolydian"],
+      "the sword": ["Minor Pentatonic","Blues Scale","Stoner Blues","Doom Minor"],
+      "high on fire": ["Minor Pentatonic","Blues Scale","Stoner Blues","Phrygian"],
+      "baroness": ["Natural Minor (Aeolian)","Dorian","Phrygian","Minor Pentatonic"],
+      "kvelertak": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)","Mixolydian"],
+      "turbonegro": ["Minor Pentatonic","Blues Scale","Natural Minor (Aeolian)"],
+      "refused": ["Minor Pentatonic","Natural Minor (Aeolian)","Phrygian"],
+      "at the gates": ["Phrygian","Natural Minor (Aeolian)","Harmonic Minor"],
+      "in flames": ["Natural Minor (Aeolian)","Phrygian","Harmonic Minor","Minor Pentatonic"],
+      "dark tranquillity": ["Natural Minor (Aeolian)","Phrygian","Harmonic Minor"],
+      "soilwork": ["Natural Minor (Aeolian)","Phrygian","Harmonic Minor","Melodic Minor"],
+      "arch enemy": ["Phrygian","Harmonic Minor","Natural Minor (Aeolian)","Chromatic"],
+      "amorphis": ["Natural Minor (Aeolian)","Dorian","Phrygian","Ukrainian Dorian"],
+      "ensiferum": ["Natural Minor (Aeolian)","Harmonic Minor","Phrygian","Ukrainian Dorian"],
+      "finntroll": ["Natural Minor (Aeolian)","Phrygian","Ukrainian Dorian"],
+      "korpiklaani": ["Natural Minor (Aeolian)","Mixolydian","Ukrainian Dorian","Major Pentatonic"],
+      "eluveitie": ["Natural Minor (Aeolian)","Dorian","Ukrainian Dorian"],
+      "wardruna": ["Natural Minor (Aeolian)","Dorian","Pentatonic Neutral"],
+      "heilung": ["Natural Minor (Aeolian)","Pentatonic Neutral","Dorian"],
+      "tyr": ["Natural Minor (Aeolian)","Harmonic Minor","Mixolydian"],
+      "amon amarth": ["Natural Minor (Aeolian)","Phrygian","Minor Pentatonic"],
+      "enslaved": ["Natural Minor (Aeolian)","Phrygian","Dorian","Black Metal Aeolian"],
+      "windir": ["Natural Minor (Aeolian)","Phrygian","Harmonic Minor"],
+      "satyricon": ["Natural Minor (Aeolian)","Phrygian","Black Metal Aeolian"],
+      "gorgoroth": ["Natural Minor (Aeolian)","Phrygian","Locrian"],
+      "darkthrone": ["Natural Minor (Aeolian)","Phrygian","Black Metal Aeolian"],
+      "burzum": ["Natural Minor (Aeolian)","Phrygian","Black Metal Aeolian"],
+      "ulver": ["Natural Minor (Aeolian)","Dorian","Phrygian"],
+      "agalloch": ["Natural Minor (Aeolian)","Dorian","Phrygian","Doom Minor"],
+      "alcest": ["Natural Minor (Aeolian)","Dorian","Major (Ionian)","Lydian"],
+      "deafheaven": ["Natural Minor (Aeolian)","Dorian","Major (Ionian)"],
+      "ghost": ["Natural Minor (Aeolian)","Harmonic Minor","Phrygian","Minor Pentatonic","Mixolydian"],
+      "ghost bc": ["Natural Minor (Aeolian)","Harmonic Minor","Phrygian"],
+      "uncle acid": ["Blues Scale","Minor Pentatonic","Stoner Blues","Doom Minor"],
+      "graveyard": ["Minor Pentatonic","Blues Scale","Stoner Blues"],
+      "witchcraft": ["Minor Pentatonic","Blues Scale","Doom Minor"],
+      "pentagram": ["Minor Pentatonic","Blues Scale","Doom Minor","Natural Minor (Aeolian)"],
+      "saint vitus": ["Doom Minor","Natural Minor (Aeolian)","Blues Scale"],
+      "trouble": ["Doom Minor","Natural Minor (Aeolian)","Minor Pentatonic"],
+      "cathedral": ["Doom Minor","Blues Scale","Natural Minor (Aeolian)"],
+      "electric wizard": ["Blues Scale","Stoner Blues","Doom Minor","Minor Pentatonic"],
+      "om": ["Blues Scale","Minor Pentatonic","Stoner Blues","Dorian"],
+      "sleep": ["Blues Scale","Stoner Blues","Doom Minor","Minor Pentatonic"],
+      "bongripper": ["Doom Minor","Blues Scale","Stoner Blues"],
+      "bell witch": ["Doom Minor","Natural Minor (Aeolian)"],
+      "pallbearer": ["Doom Minor","Natural Minor (Aeolian)","Harmonic Minor"],
+      "warning": ["Doom Minor","Natural Minor (Aeolian)"],
+      "50s rock": ["Major Pentatonic","Mixolydian","Major (Ionian)"],
+      "classic rock": ["Minor Pentatonic","Blues Scale","Mixolydian","Major Pentatonic","Natural Minor (Aeolian)"]
+    };
+
+    // Reenit – paljon, myös vinkkejä ja vaihtoehtoisia sormituksia
+    const EXERCISES = [
+      // Alkeet
+      { id:1, lvl:"alkeet", title:"1 oktaavin skaala ylös-alas", desc:"Soita skaala yhden oktaavin alueella metronomin kanssa. 60→90 bpm. Käytä oktaavivalintaa 1." },
+      { id:2, lvl:"alkeet", title:"Nuottien nimeäminen", desc:"Katso otelautaa ja nimeä jokainen skaalan nuotti ääneen ennen soittamista." },
+      { id:3, lvl:"alkeet", title:"Powerchord-siirtymät", desc:"Siirry powerchordista toiseen puhtaasti. Palm mute päällä. Juuret skaalan asteilla." },
+      { id:4, lvl:"alkeet", title:"Virekorjaus korvalla", desc:"Käytä Kuuntelu-tilaa. Säädä kieli kunnes sentit ≈ 0. USB-laitteella nosta gainia." },
+      { id:5, lvl:"alkeet", title:"Metronomi-perus", desc:"Skaala 60 bpm, nosta 4 bpm kun puhdasta. Vain yksi oktaavi kerrallaan." },
+      { id:6, lvl:"alkeet", title:"Silmät kiinni", desc:"Soita skaala silmät kiinni. Lihasmuisti. Aloita hitaasti." },
+      { id:7, lvl:"alkeet", title:"Juurten löytäminen", desc:"Etsi kaikki root-nuotit otelaudalta valitulla skaalalla. Merkitse asteilla." },
+      { id:8, lvl:"alkeet", title:"Avoimet kielet + skaala", desc:"Käytä avoimia kieliä skaalan nuotteina. Tunne resonanssi." },
+      { id:9, lvl:"alkeet", title:"Yksi kieli kerrallaan", desc:"Soita skaala vain yhdellä kielellä (esim. G). Siirry seuraavaan." },
+      { id:10, lvl:"alkeet", title:"2 nuottia per kieli – box", desc:"Klassinen pentatonic-box. 2 nuottia/kieli. Molemmat suunnat." },
+      { id:11, lvl:"alkeet", title:"Sormijärjestys 1-2-3-4", desc:"Kromaattinen 1-2-3-4 jokaisella kielellä. Sitten skaalalla." },
+      { id:12, lvl:"alkeet", title:"Palm mute -tunto", desc:"Skaalan nuotteja palm mutatuna. Rytmi tasainen." },
+      { id:13, lvl:"alkeet", title:"Ylös vain / alas vain", desc:"Soita skaala vain nousevasti 4 kertaa, sitten vain laskevasti." },
+      { id:14, lvl:"alkeet", title:"Juuri → kvintti", desc:"Vain root ja 5. aste. Power-soundi. Sitten lisää b3/3." },
+      { id:15, lvl:"alkeet", title:"Nuottijahti 10 kertaa", desc:"Käytä Kuuntelu → Nuottijahti. 10 oikein putkeen." },
+
+      // Keski
+      { id:16, lvl:"keski", title:"3 notes per string", desc:"Koko skaala 3NPS-muodossa. Molemmat suunnat. Vertaa 2 nuottia/kieli -muotoon." },
+      { id:17, lvl:"keski", title:"Sekvenssi 1231 2342", desc:"Asteet ryhmissä. Tempo nousee asteittain. 3NPS tai box." },
+      { id:18, lvl:"keski", title:"Diatoniset tertsit", desc:"Soita skaalaa tertseissä (1-3, 2-4...). Molemmat suunnat." },
+      { id:19, lvl:"keski", title:"Vaihtoehtoinen sormitus", desc:"Sama root 1. TAI 2. sormella. Huomaa aseman muutos. Harjoittele molemmat." },
+      { id:20, lvl:"keski", title:"String skipping", desc:"Hyppää yhden kielen yli skaalaa soitettaessa. Uudet fraasit." },
+      { id:21, lvl:"keski", title:"Legato-juoksu", desc:"Hammer-on / pull-off -skaala. Minimaalinen pick. 3NPS." },
+      { id:22, lvl:"keski", title:"Call & response", desc:"2-tahtinen fraasi → vastaa toisella. Sama skaala." },
+      { id:23, lvl:"keski", title:"Siirtymä viereiseen muotoon", desc:"Yksi box/muoto → seuraava ilman katkoa. Slide tai shift." },
+      { id:24, lvl:"keski", title:"Pentatonic → Aeolian", desc:"Soita box, lisää 2 ja b6. Laajenna 5 → 7 nuottia." },
+      { id:25, lvl:"keski", title:"Ryhmittely 5 nuottia", desc:"Vaikka 7-nuottinen, ryhmitele 5:een. Rytminen kiinnostavuus." },
+      { id:26, lvl:"keski", title:"Tertsit + kvartit", desc:"Vuorottele tertsi- ja kvartti-sekvenssejä skaalalla." },
+      { id:27, lvl:"keski", title:"2 oktaavia yhtäjaksoisesti", desc:"Valitse oktaavit=2. Soita yhtäjaksoinen juoksu ylös-alas." },
+      { id:28, lvl:"keski", title:"Sama lick 3 asemassa", desc:"Keksi 4–5 nuotin lick. Siirrä se 3 eri asemaan samalla skaalalla." },
+      { id:29, lvl:"keski", title:"Alternate picking -skaala", desc:"Tiukka alternate. Metronomi. Ei economya vielä." },
+      { id:30, lvl:"keski", title:"Economy picking intro", desc:"3NPS: kun vaihdat kieltä samaan suuntaan, jatka samalla lyönnillä." },
+      { id:31, lvl:"keski", title:"Rajoita 4 nuottiin", desc:"Improvisoi vain 4 nuotilla 2 min. Pakota luovuus." },
+      { id:32, lvl:"keski", title:"Skaala + powerchord-riffi", desc:"2 tahtia power-riffiä, 2 tahtia skaalafillet." },
+      { id:33, lvl:"keski", title:"Nouseva sekvenssi 1-2-3-4", desc:"Skaalan asteilla: 1-2-3-4, 2-3-4-5..." },
+      { id:34, lvl:"keski", title:"Laskeva sekvenssi 4-3-2-1", desc:"Sama mutta laskevasti." },
+      { id:35, lvl:"keski", title:"Oktaavit + unisont", desc:"Soita nuotti ja sen oktaavi. Sitten unisont eri kielillä." },
+
+      // Edistynyt
+      { id:36, lvl:"edistynyt", title:"Economy picking -juoksu", desc:"Yhdistä alternate + sweep-logiikka 3NPS:llä. Nopea." },
+      { id:37, lvl:"edistynyt", title:"Tapping + skaala", desc:"Vasemmalla frettaus, oikealla tapping. 2–3 oktaavia." },
+      { id:38, lvl:"edistynyt", title:"Sweep arpeggio + skaala", desc:"Diminished/minor-arpeggio sweep → skaalajuoksu." },
+      { id:39, lvl:"edistynyt", title:"Chromatic approach", desc:"Lähesty skaalan nuotteja kromaattisesti ylä- ja alapuolelta." },
+      { id:40, lvl:"edistynyt", title:"Sama lick eri oktaaveissa", desc:"Keksi 4 nuotin idea, siirrä oktaavi ylös/alas ja eri asemaan." },
+      { id:41, lvl:"edistynyt", title:"Dynamics", desc:"Sama skaala pp → ff. Kontrolli ja soittoäänen väri." },
+      { id:42, lvl:"edistynyt", title:"Yksi idea, monta skaalaa", desc:"Sama 4 nuotin idea eri skaaloilla (penta → aeolian → harmonic)." },
+      { id:43, lvl:"edistynyt", title:"Vaihda sormitusta lennossa", desc:"Kesken juoksun 3NPS → 2 nuottia/kieli ilman pysähdystä." },
+      { id:44, lvl:"edistynyt", title:"Nauhoita & analysoi", desc:"1 min impro → kuuntele, merkitse hyvät fraasit, toista ne." },
+      { id:45, lvl:"edistynyt", title:"3 oktaavin juoksu", desc:"Oktaavit=3. Puhdas juoksu ylös-alas ilman taukoa." },
+      { id:46, lvl:"edistynyt", title:"Hybrid picking -skaala", desc:"Pick + sormet. Skaalajuoksut hybridillä." },
+      { id:47, lvl:"edistynyt", title:"Outside notes", desc:"Lisää tietoisesti 1–2 nuottia skaalan ulkopuolelta ja resolvoi." },
+      { id:48, lvl:"edistynyt", title:"Polyrhythm 3 vs 4", desc:"Skaalasekvenssi 3-ryhmissä 4/4-tahtilajissa." },
+      { id:49, lvl:"edistynyt", title:"Wide intervals", desc:"Skaala seksteissä tai septimeissä. Laajat hypyt." },
+      { id:50, lvl:"edistynyt", title:"Improv 2 min ilman toistoa", desc:"Älä toista samaa fraasia. Pakota uusia ideoita." },
+
+      // Metal / Rock
+      { id:51, lvl:"metal", title:"Gallop-riffi skaalasta", desc:"1-a-ja -rytmi 3–4 nuotilla skaalasta. Palm mute." },
+      { id:52, lvl:"metal", title:"Tremolo + Phrygian", desc:"Nopea tremolo phrygian-skaalalla. Black/thrash-tunnelma." },
+      { id:53, lvl:"metal", title:"Palm mute -riffi", desc:"Rakenna 4-tahtinen palm-mute-riffi minor pentasta tai aeolianista." },
+      { id:54, lvl:"metal", title:"Harmonic minor cadence", desc:"5. asteelta (Phrygian Dominant) rootiin. Tunne jännite→resoluutio." },
+      { id:55, lvl:"metal", title:"Phrygian riff -rakennus", desc:"Käytä b2:ta riffin alussa. 4 tahtia. Thrash/black." },
+      { id:56, lvl:"metal", title:"Low drone + skaala", desc:"Pidä matala E/A soimaan, soita skaalaa yläkielillä." },
+      { id:57, lvl:"metal", title:"Diminished run → resolve", desc:"Half-whole dim juoksu, resolvoi minor rootiin." },
+      { id:58, lvl:"metal", title:"Powerchord + fill", desc:"Riffi + lyhyet skaalafillet tauoissa." },
+      { id:59, lvl:"metal", title:"Djent-rytmi + skaala", desc:"Synkopoidut palm-mutet + skaalajuoksu. Djent Scale / Locrian." },
+      { id:60, lvl:"metal", title:"Stoner-riffi", desc:"Hidas blues/minor pentatonic, raskas, low tuning (drop C/D)." },
+      { id:61, lvl:"metal", title:"Chromatic metal run", desc:"Chromatic-passage phrygian/aeolian-kontekstissa." },
+      { id:62, lvl:"metal", title:"Neoclassical sequence", desc:"Harmonic minor 3NPS + tertsisekvenssit. Yngwie-henki." },
+      { id:63, lvl:"metal", title:"Whammy / dive + skaala", desc:"Jos on tremolo: dive bomb → skaalajuoksu ylös." },
+      { id:64, lvl:"metal", title:"Pinch harmonics + skaala", desc:"Lisää pinch harmoneja skaalarafkeihin." },
+      { id:65, lvl:"metal", title:"Drop tuning -riffi", desc:"Drop D/C: käytä matalaa kieltä droneena, skaala ylhäällä." },
+      { id:66, lvl:"metal", title:"Thrash picking -kestävyys", desc:"16-osaset alternate 120→160 bpm. Lyhyt skaalasekvenssi." },
+      { id:67, lvl:"metal", title:"Black metal tremolo figure", desc:"Tremolo kahdella kolmella nuotilla phrygian/aeolian. Hypnoottinen." },
+      { id:68, lvl:"metal", title:"Doom-rytmi + blues", desc:"Hidas, raskas. Blues scale / stoner blues. Pitkät nuotit." },
+      { id:69, lvl:"metal", title:"Prog odd meter", desc:"Skaalasekvenssi 5/4 tai 7/8. Laske ääneen." },
+      { id:70, lvl:"metal", title:"Shred burst", desc:"2 tahtia hidasta riffiä → 1 tahti nopea skaalaburst → toista." },
+
+      // Vinkit & sormitukset
+      { id:71, lvl:"vinkki", title:"Aloita 1. TAI 2. sormella", desc:"Sama skaala: kokeile root 1. sormella ja 2. sormella. Saat eri asemat ja eri soundin siirtymiin." },
+      { id:72, lvl:"vinkki", title:"2 nuottia/kieli vs 3NPS", desc:"Soita sama oktaavi molemmilla tavoilla. 2n/kieli = tuttu box, 3NPS = pidemmät juoksut." },
+      { id:73, lvl:"vinkki", title:"String skip avaa fraaseja", desc:"Hyppää G→B tai D→B. Saat isompia intervalleja ilman että liikut kauas." },
+      { id:74, lvl:"vinkki", title:"Sama nuotti eri kielillä", desc:"Etsi unisontit. Soita melodia käyttäen eri kieliä samalle korkeudelle – eri timbre." },
+      { id:75, lvl:"vinkki", title:"Slide sisään skaalaan", desc:"Aloita slide puolen sävelen alta rootiin. Blues/metal-fraasi heti." },
+      { id:76, lvl:"vinkki", title:"Grace notes / hammer-on alku", desc:"Hammer-on alemmalta naapurinuotilta skaalan nuottiin. Legato-tunne." },
+      { id:77, lvl:"vinkki", title:"Rajoita alue 5 nauhaan", desc:"Valitse oktaavi-alku ja 1–2 oktaavia. Pysy pienellä alueella – syvempi impro." },
+      { id:78, lvl:"vinkki", title:"Vain b2 ja root (Phrygian)", desc:"Phrygian: keskity b2–1 -liikkeeseen. Riffin ydin monessa thrash/blackissä." },
+      { id:79, lvl:"vinkki", title:"Harmonic minor: 7 → 1", desc:"Korostettu 7. aste → root. Tunne veto. Käytä cadence-harjoituksessa." },
+      { id:80, lvl:"vinkki", title:"Pentatonic box + 2 nuottia ulkoa", desc:"Box 1 + lisää 2. aste ja/tai b6. Muutat penta → aeolian/dorian." },
+      { id:81, lvl:"vinkki", title:"3NPS sormitus 1-3-4 / 1-2-4", desc:"Joissain skaaloissa 1-3-4, toisissa 1-2-4. Kokeile molemmat, valitse sujuvampi." },
+      { id:82, lvl:"vinkki", title:"Laske asteet soittaessa", desc:"Ääneen: 1, 2, b3... Kun tiedät asteen, voit kohdistaa jännitteen." },
+      { id:83, lvl:"vinkki", title:"Soita skaala soinnun yli", desc:"Valitse sointu (esim. minor) ja soita skaala sen päällä. Kuuntele mitkä nuotit 'maistuvat'." },
+      { id:84, lvl:"vinkki", title:"Vaihda tallan korkeutta mentalisesti", desc:"Kuvittele että soitat 12. nauhan yläpuolella – samat sormitukset, eri rekisteri." },
+      { id:85, lvl:"vinkki", title:"Käytä oktaavivalintaa treenissä", desc:"Harjoittele ensin 1 oktaavi puhtaasti, sitten 2, sitten 3. Älä hyppää liian isoon alueeseen." },
+      { id:86, lvl:"vinkki", title:"Bändihaku ideointiin", desc:"Hae 'Slayer' tai 'Gojira' skaalalistasta. Ota 1 skaala ja rakenna 4 tahdin riffi sen hengessä." },
+      { id:87, lvl:"vinkki", title:"Sama riffi eri skaaloilla", desc:"Pidä rytmi ja muoto, vaihda vain skaala (penta → phrygian → harmonic). Kuule värierot." },
+      { id:88, lvl:"vinkki", title:"Finger roll / barre-tunto", desc:"Kun 3NPS:ssä useita nuotteja samalla sormella vierekkäisillä kielillä, harjoittele pehmeä roll." },
+      { id:89, lvl:"vinkki", title:"Vastaliike (contrary)", desc:"Yksi käsi/ajatus nousee, toinen laskee – esim. bassolinja alas, lead ylös skaalalla." },
+      { id:90, lvl:"vinkki", title:"Tauko on nuotti", desc:"Jätä tietoisia taukoja skaalajuoksuihin. Riffi hengittää." },
+
+      // Lisää alkeita / keski / metal täytteeksi
+      { id:91, lvl:"alkeet", title:"Kuuntele skaala ensin", desc:"Paina Soita. Laula mukana. Sitten soita." },
+      { id:92, lvl:"alkeet", title:"Vain rootit eri oktaaveissa", desc:"Etsi root 0–12 nauhalta kaikilla kielillä. Tunne kaula." },
+      { id:93, lvl:"keski", title:"Sekvenssi 1-3-2-4", desc:"Hyppäävä sekvenssi skaalan asteilla. Rytminen kiinnostavuus." },
+      { id:94, lvl:"keski", title:"Skaala 6/8-rytmissä", desc:"Kolmijakoisuus. Metallissa ja progissa yleinen tuntu." },
+      { id:95, lvl:"metal", title:"Palm mute → avoin isku", desc:"Riffi: mute-mute-MUTE-avoin. Skaalan nuoteilla." },
+      { id:96, lvl:"metal", title:"Syncopa + phrygian", desc:"Korosta upbeat. Phrygian b2 synkoopissa." },
+      { id:97, lvl:"edistynyt", title:"Skaala + arpeggio vuorottelu", desc:"1 tahti skaalaa, 1 tahti soinnun arpeggioita. Sama root." },
+      { id:98, lvl:"edistynyt", title:"Modal interchange", desc:"Vaihda kesken fraasin aeolian → dorian (luonnollinen 6) ja takaisin." },
+      { id:99, lvl:"vinkki", title:"Älä aina aloita rootista", desc:"Aloita 5. tai b7. asteelta. Melodiat kiinnostavampia." },
+      { id:100, lvl:"vinkki", title:"Päätä fraasi roottiin tai 5:een", desc:"Resoluutio. Kuulija lepää. Sitten jännite uudelleen." },
+      { id:101, lvl:"keski", title:"Kahden skaalan hybridi", desc:"Minor penta + 2 nuottia harmonic minorista. Oma väri." },
+      { id:102, lvl:"metal", title:"Low E drone + phrygian lead", desc:"Drop D/C. Matala kieli soi, yläkielillä phrygian." },
+      { id:103, lvl:"alkeet", title:"Tempo 50% → 100%", desc:"Opi fraasi hitaasti, nosta vähitellen tavoitetempooon." },
+      { id:104, lvl:"edistynyt", title:"Improvisoi vain yhden kielen yli", desc:"String skip pakotettuna. Pakottaa uusia kuvioita." },
+      { id:105, lvl:"vinkki", title:"Tallenna 'hyvä sormitus'", desc:"Kun löydät sujuvan tavan, toista se 10×. Älä vaihda sormitusta joka kerta." }
+    ];
+
+    // ==================== STATE ====================
+    let currentRoot = 4;
+    let currentScale = "Minor Pentatonic";
+    let currentChord = "Power (5)";
+    let fretCount = 15;
+    let labelMode = "notes";
+    let showMode = "scale";
+    let leftHanded = false;
+    let octaveCount = 2; // 0 = all
+    let octaveStartFret = 0;
+    let audioCtx = null;
+    let gainNode = null;
+    let mediaStream = null;
+    let analyser = null;
+    let micRAF = null;
+    let metroTimer = null;
+    let detectedPitches = [];
+    let detectMode = false;
+    let huntTarget = null;
+    let doneExercises = new Set(JSON.parse(localStorage.getItem("skaalalauta_done") || "[]"));
+    let rmsThreshold = 0.008;
+
+    // ==================== INIT ====================
+    function init() {
+      populateSelects();
+      populateScaleList("all");
+      populateChordList("all");
+      populateExList("all");
+      buildQuickNotes();
+      drawFretboard();
+      updateInfo();
+      bindEvents();
+      updateProgress();
+      tryLoadDevices();
+    }
+
+    function populateSelects() {
+      const ss = document.getElementById("scale-select");
+      const cs = document.getElementById("chord-select");
+      ss.innerHTML = ""; cs.innerHTML = "";
+      Object.keys(SCALES).forEach(n => {
+        const o = document.createElement("option");
+        o.value = n; o.textContent = n;
+        if (n === currentScale) o.selected = true;
+        ss.appendChild(o);
+      });
+      Object.keys(CHORDS).forEach(n => {
+        const o = document.createElement("option");
+        o.value = n; o.textContent = n;
+        if (n === currentChord) o.selected = true;
+        cs.appendChild(o);
+      });
+    }
+
+    function populateScaleList(cat) {
+      const list = document.getElementById("scale-list");
+      list.innerHTML = "";
+      const q = (document.getElementById("scale-search").value || "").toLowerCase().trim();
+      let names = Object.keys(SCALES);
+
+      if (q) {
+        names = filterScales(q);
+      } else if (cat && cat !== "all") {
+        names = names.filter(n => SCALES[n].cat === cat);
+      }
+
+      names.forEach(name => {
+        const sc = SCALES[name];
+        const div = document.createElement("div");
+        div.className = "list-item" + (name === currentScale ? " active" : "");
+        div.innerHTML = `${name}<small>${sc.cat} · ${(sc.tags || []).slice(0,3).join(", ")}</small>`;
+        div.onclick = () => selectScale(name);
+        list.appendChild(div);
+      });
+      if (!names.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px">Ei osumia. Kokeile bändiä (Slayer, Gojira, Sabbath...) tai skaalan nimeä.</div>';
+      }
+    }
+
+    function populateChordList(cat) {
+      const list = document.getElementById("chord-list");
+      list.innerHTML = "";
+      const q = (document.getElementById("chord-search").value || "").toLowerCase().trim();
+      let names = Object.keys(CHORDS);
+      if (q) {
+        names = names.filter(n => n.toLowerCase().includes(q) || (CHORDS[n].tags || []).some(t => t.includes(q)));
+      } else if (cat && cat !== "all") {
+        names = names.filter(n => CHORDS[n].cat === cat);
+      }
+      names.forEach(name => {
+        const div = document.createElement("div");
+        div.className = "list-item" + (name === currentChord ? " active" : "");
+        div.innerHTML = `${name}<small>${CHORDS[name].cat}</small>`;
+        div.onclick = () => {
+          currentChord = name;
+          document.getElementById("chord-select").value = name;
+          drawFretboard();
+          updateInfo();
+          populateChordList(cat);
+        };
+        list.appendChild(div);
+      });
+    }
+
+    function populateExList(lvl) {
+      const list = document.getElementById("ex-list");
+      list.innerHTML = "";
+      let items = EXERCISES;
+      if (lvl && lvl !== "all") items = EXERCISES.filter(e => e.lvl === lvl);
+      items.forEach(ex => {
+        const div = document.createElement("div");
+        div.className = "ex-card" + (doneExercises.has(ex.id) ? " done" : "");
+        const tagClass = ex.lvl === "metal" ? "metal" : (ex.lvl === "vinkki" ? "vinkki" : "");
+        div.innerHTML = `<h4>${doneExercises.has(ex.id) ? "✓ " : ""}${ex.title}</h4>
+          <p>${ex.desc}</p>
+          <span class="tag ${tagClass}">${ex.lvl}</span>`;
+        div.onclick = () => showEx(ex);
+        list.appendChild(div);
+      });
+    }
+
+    function showEx(ex) {
+      if (doneExercises.has(ex.id)) doneExercises.delete(ex.id);
+      else doneExercises.add(ex.id);
+      localStorage.setItem("skaalalauta_done", JSON.stringify([...doneExercises]));
+      updateProgress();
+      const active = document.querySelector("#ex-tabs .ex-tab.active");
+      populateExList(active ? active.dataset.lvl : "all");
+    }
+
+    function updateProgress() {
+      const total = EXERCISES.length;
+      const done = doneExercises.size;
+      const el = document.getElementById("ex-progress");
+      const bar = document.getElementById("ex-bar");
+      if (el) el.textContent = `Tehty ${done} / ${total} harjoitusta`;
+      if (bar) bar.style.width = (100 * done / total) + "%";
+    }
+
+    function selectScale(name) {
+      if (!SCALES[name]) return;
+      currentScale = name;
+      document.getElementById("scale-select").value = name;
+      drawFretboard();
+      updateInfo();
+      const activeCat = document.querySelector("#scale-cats .cat-btn.active");
+      populateScaleList(activeCat ? activeCat.dataset.cat : "all");
+    }
+
+    function updateInfo() {
+      const sc = SCALES[currentScale];
+      const ch = CHORDS[currentChord];
+      const ints = sc.int.map(i => INTERVAL_NAMES[i]).join(" ");
+      const notes = sc.int.map(i => NOTE_NAMES[(currentRoot + i) % 12]).join(" ");
+      document.getElementById("scale-info").innerHTML =
+        `<span><strong>${NOTE_NAMES[currentRoot]} ${currentScale}</strong></span>
+         <span>Nuotit: ${notes}</span>
+         <span>Intervallit: ${ints}</span>
+         <span>Sointu: ${currentChord}</span>`;
+      const tip = document.getElementById("fingering-tip");
+      if (sc.tip) tip.innerHTML = `<strong>Vinkki:</strong> ${sc.tip}`;
+      else tip.innerHTML = `<strong>Vinkki:</strong> Valitse skaala tai sointu. Rajaa oktaaveilla treenialue.`;
+    }
+
+    function pitchMidiApprox(stringIdx, fret) {
+      // approximate MIDI-like number for range limiting (not exact concert pitch)
+      return stringTuning[stringIdx] + fret + stringIdx * 5;
+    }
+
+    function drawFretboard() {
+      const board = document.getElementById("fretboard");
+      const nums = document.getElementById("fret-numbers");
+      const wrap = document.getElementById("fretboard-wrap");
+      const sc = SCALES[currentScale];
+      const ch = CHORDS[currentChord];
+      if (!sc || !ch) return;
+      const scaleSet = new Set(sc.int.map(i => (currentRoot + i) % 12));
+      const chordSet = new Set(ch.int.map(i => (currentRoot + (i % 12)) % 12));
+
+      board.style.setProperty("--frets", fretCount);
+      if (wrap) wrap.style.setProperty("--frets", fretCount);
+      nums.style.setProperty("--frets", fretCount);
+      board.innerHTML = "";
+      nums.innerHTML = "<div></div>";
+      for (let f = 0; f < fretCount; f++) {
+        const n = document.createElement("div");
+        n.textContent = f;
+        nums.appendChild(n);
+      }
+
+      // Octave limiting: find lowest root at/after octaveStartFret, then allow N octaves (12*N frets span roughly)
+      let minScore = Infinity, maxScore = -Infinity;
+      if (octaveCount > 0) {
+        // collect candidate pitches with a linear score
+        const roots = [];
+        for (let s = 0; s < 6; s++) {
+          for (let f = octaveStartFret; f < fretCount; f++) {
+            const pitch = (stringTuning[s] + f) % 12;
+            if (pitch === currentRoot) {
+              roots.push({ s, f, score: f + s * 0.1 });
+            }
+          }
+        }
+        if (roots.length) {
+          roots.sort((a, b) => a.score - b.score);
+          const start = roots[0];
+          minScore = start.f - 1;
+          maxScore = start.f + octaveCount * 12 + 2;
+        } else {
+          minScore = octaveStartFret;
+          maxScore = octaveStartFret + octaveCount * 12;
+        }
+      }
+
+      const order = leftHanded ? [0,1,2,3,4,5] : [5,4,3,2,1,0];
+      order.forEach(s => {
+        const row = document.createElement("div");
+        row.className = "string-row";
+        const lab = document.createElement("div");
+        lab.className = "string-label";
+        lab.textContent = stringNames[s];
+        row.appendChild(lab);
+
+        for (let f = 0; f < fretCount; f++) {
+          const cell = document.createElement("div");
+          cell.className = "fret" + (f === 0 ? " open" : "");
+          if ([3,5,7,9,12,15,17,19,21,24].includes(f)) cell.classList.add("marker");
+
+          const pitch = (stringTuning[s] + f) % 12;
+          const isRoot = pitch === currentRoot;
+          const inScale = scaleSet.has(pitch);
+          const inChord = chordSet.has(pitch);
+          const isHunt = huntTarget && huntTarget.string === s && huntTarget.fret === f;
+
+          let inOctaveRange = true;
+          if (octaveCount > 0) {
+            inOctaveRange = f >= minScore && f <= maxScore;
+          }
+
+          let show = false;
+          let cls = "scale";
+          if (showMode === "scale" && inScale && inOctaveRange) { show = true; cls = isRoot ? "root" : "scale"; }
+          if (showMode === "chord" && inChord) { show = true; cls = isRoot ? "root" : "chord"; }
+          if (showMode === "both") {
+            if (inChord) { show = true; cls = isRoot ? "root" : "chord"; }
+            else if (inScale && inOctaveRange) { show = true; cls = isRoot ? "root" : "scale"; }
+          }
+          if (isHunt) { show = true; cls = "hunt"; }
+          if (detectMode && detectedPitches.includes(pitch)) { show = true; cls = "detected"; }
+
+          if (octaveCount > 0 && inScale && !inOctaveRange && showMode !== "chord") {
+            cell.classList.add("dimmed");
+          }
+
+          if (show) {
+            const dot = document.createElement("div");
+            dot.className = "note-dot " + cls;
+            const deg = sc.int.indexOf((pitch - currentRoot + 12) % 12);
+            if (labelMode === "notes") dot.textContent = NOTE_NAMES[pitch];
+            else if (labelMode === "degrees") dot.textContent = deg >= 0 ? (deg + 1) : "";
+            else dot.textContent = INTERVAL_NAMES[(pitch - currentRoot + 12) % 12];
+            cell.appendChild(dot);
+          }
+
+          cell.onclick = () => onFretTap(s, f, pitch);
+          row.appendChild(cell);
+        }
+        board.appendChild(row);
+      });
+    }
+
+    function onFretTap(s, f, pitch) {
+      playNote(pitch, 3 + Math.floor(f / 12));
+      if (detectMode || document.getElementById("tunnistus").classList.contains("visible")) {
+        addDetected(pitch);
+      }
+      if (huntTarget && huntTarget.string === s && huntTarget.fret === f) {
+        nextHunt();
+      }
+    }
+
+    function addDetected(pitch) {
+      if (!detectedPitches.includes(pitch)) {
+        detectedPitches.push(pitch);
+      }
+      renderDetected();
+      matchScales();
+      if (detectMode) drawFretboard();
+    }
+
+    function renderDetected() {
+      const el = document.getElementById("det-notes");
+      el.innerHTML = detectedPitches.map(p =>
+        `<span class="det-note">${NOTE_NAMES[p]}</span>`
+      ).join("");
+    }
+
+    function matchScales() {
+      const res = document.getElementById("det-results");
+      if (detectedPitches.length < 3) {
+        res.innerHTML = `<p style="color:var(--muted);font-size:0.85rem">Lisää vähintään 3 eri nuottia (nyt ${detectedPitches.length}).</p>`;
+        return;
+      }
+      const results = [];
+      for (const [name, sc] of Object.entries(SCALES)) {
+        const set = new Set(sc.int);
+        // try each detected as potential root
+        for (let r = 0; r < 12; r++) {
+          let hit = 0, extra = 0;
+          const needed = sc.int.length;
+          detectedPitches.forEach(p => {
+            const iv = (p - r + 12) % 12;
+            if (set.has(iv)) hit++;
+            else extra++;
+          });
+          // score: how many of the scale are covered + penalty for extras
+          const coverage = hit / Math.max(detectedPitches.length, 1);
+          const scaleCoverage = hit / needed;
+          if (hit >= 3) {
+            results.push({
+              name, root: r, hit, extra, needed,
+              score: coverage * 0.6 + scaleCoverage * 0.4 - extra * 0.05
+            });
+          }
+        }
+      }
+      results.sort((a, b) => b.score - a.score);
+      const top = results.slice(0, 8);
+      if (!top.length) {
+        res.innerHTML = `<p style="color:var(--muted)">Ei selkeää osumaa. Lisää nuotteja.</p>`;
+        return;
+      }
+      res.innerHTML = top.map((t, i) => {
+        const partial = t.hit < t.needed || t.extra > 0;
+        return `<div class="scale-match ${partial ? "partial" : ""}" style="cursor:pointer" data-scale="${t.name}" data-root="${t.root}">
+          <h3>${NOTE_NAMES[t.root]} ${t.name}</h3>
+          <div style="font-size:0.8rem;color:var(--muted)">Osumia ${t.hit}/${detectedPitches.length} · skaalan nuotteja ${t.hit}/${t.needed}${t.extra ? " · ylimääräisiä " + t.extra : ""}</div>
+        </div>`;
+      }).join("");
+      res.querySelectorAll(".scale-match").forEach(el => {
+        el.onclick = () => {
+          currentRoot = parseInt(el.dataset.root, 10);
+          document.getElementById("root-note").value = currentRoot;
+          selectScale(el.dataset.scale);
+        };
+      });
+    }
+
+    function buildQuickNotes() {
+      const el = document.getElementById("quick-notes");
+      el.innerHTML = "";
+      NOTE_NAMES.forEach((n, i) => {
+        const b = document.createElement("button");
+        b.className = "action secondary";
+        b.textContent = n;
+        b.style.padding = "6px 10px";
+        b.onclick = () => addDetected(i);
+        el.appendChild(b);
+      });
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = parseFloat(document.getElementById("gain").value) || 2.5;
+        gainNode.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playNote(pc, oct = 4) {
+      const ctx = ensureAudio();
+      const freq = 440 * Math.pow(2, (pc - 9 + (oct - 4) * 12) / 12);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.connect(g);
+      g.connect(gainNode || ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    }
+
+    function playScaleSeq() {
+      const sc = SCALES[currentScale];
+      const notes = sc.int.map(i => (currentRoot + i) % 12);
+      const seq = [...notes, ...notes.slice(0, -1).reverse()];
+      let i = 0;
+      const t = setInterval(() => {
+        if (i >= seq.length) { clearInterval(t); return; }
+        playNote(seq[i], 4);
+        i++;
+      }, 200);
+    }
+
+    function autoCorrelate(buf, sampleRate) {
+      const SIZE = buf.length;
+      let rms = 0;
+      for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+      rms = Math.sqrt(rms / SIZE);
+      if (rms < rmsThreshold) return -1;
+
+      let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+      for (let i = 0; i < SIZE / 2; i++) {
+        if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+      }
+      for (let i = 1; i < SIZE / 2; i++) {
+        if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+      }
+      const buf2 = buf.slice(r1, r2);
+      const SIZE2 = buf2.length;
+      if (SIZE2 < 32) return -1;
+
+      const c = new Array(SIZE2).fill(0);
+      for (let i = 0; i < SIZE2; i++) {
+        for (let j = 0; j < SIZE2 - i; j++) c[i] += buf2[j] * buf2[j + i];
+      }
+      let d = 0;
+      while (d < SIZE2 - 1 && c[d] > c[d + 1]) d++;
+      let maxval = -1, maxpos = -1;
+      for (let i = d; i < SIZE2; i++) {
+        if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+      }
+      if (maxpos <= 0) return -1;
+      let T0 = maxpos;
+      if (T0 > 0 && T0 < SIZE2 - 1) {
+        const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+        const a = (x1 + x3 - 2 * x2) / 2;
+        const b = (x3 - x1) / 2;
+        if (a) T0 = T0 - b / (2 * a);
+      }
+      const freq = sampleRate / T0;
+      if (freq < 70 || freq > 1400) return -1;
+      return freq;
+    }
+
+    function freqToNote(freq) {
+      const noteNum = 12 * (Math.log(freq / 440) / Math.log(2));
+      const note = Math.round(noteNum) + 69;
+      const pc = ((note % 12) + 12) % 12;
+      const cents = Math.floor((noteNum - Math.round(noteNum)) * 100);
+      return { pc, cents, name: NOTE_NAMES[pc], midi: note };
+    }
+
+    async function startMic() {
+      const status = document.getElementById("mic-status");
+      try {
+        ensureAudio();
+        const deviceId = document.getElementById("audio-device").value;
+        // Instrument / USB-friendly constraints (M-Vave Ann Blackbox etc.)
+        const audioConstraints = {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+          latency: 0
+        };
+        if (deviceId) {
+          audioConstraints.deviceId = { exact: deviceId };
+        }
+        const constraints = { audio: audioConstraints };
+        if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const src = audioCtx.createMediaStreamSource(mediaStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0.3;
+        src.connect(analyser);
+        status.textContent = "Mikrofoni / USB käynnissä" + (deviceId ? " (valittu laite)" : "");
+        status.className = "status ok";
+        micLoop();
+        await tryLoadDevices();
+      } catch (e) {
+        // fallback without exact deviceId
+        try {
+          if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              channelCount: 1
+            }
+          });
+          const src = audioCtx.createMediaStreamSource(mediaStream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 4096;
+          src.connect(analyser);
+          status.textContent = "Mikrofoni käynnissä (oletuslaite – valitse USB Asetuksista)";
+          status.className = "status ok";
+          micLoop();
+          await tryLoadDevices();
+        } catch (e2) {
+          status.textContent = "Virhe: " + (e2.message || e.message);
+          status.className = "status err";
+        }
+      }
+    }
+
+    function stopMic() {
+      if (micRAF) cancelAnimationFrame(micRAF);
+      micRAF = null;
+      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+      document.getElementById("mic-status").textContent = "Mikrofoni pysäytetty";
+      document.getElementById("mic-status").className = "status";
+      document.getElementById("heard-note").textContent = "–";
+      document.getElementById("cents-display").textContent = "sentit: –";
+    }
+
+    let lastStableNote = null;
+    let stableCount = 0;
+
+    function micLoop() {
+      if (!analyser) return;
+      const buf = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(buf);
+
+      const canvas = document.getElementById("wave-canvas");
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width = canvas.offsetWidth || 300;
+      const h = canvas.height = canvas.offsetHeight || 48;
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = "#e63946";
+      ctx.beginPath();
+      const step = Math.ceil(buf.length / w);
+      for (let i = 0; i < w; i++) {
+        const v = buf[i * step] || 0;
+        const y = h / 2 + v * h * 0.45;
+        if (i === 0) ctx.moveTo(i, y);
+        else ctx.lineTo(i, y);
+      }
+      ctx.stroke();
+
+      const freq = autoCorrelate(buf, audioCtx.sampleRate);
+      if (freq > 0) {
+        const n = freqToNote(freq);
+        // simple stability filter for USB jitter
+        if (lastStableNote === n.pc) stableCount++;
+        else { lastStableNote = n.pc; stableCount = 0; }
+        if (stableCount >= 2) {
+          document.getElementById("heard-note").textContent = n.name;
+          const centsEl = document.getElementById("cents-display");
+          centsEl.textContent = "sentit: " + (n.cents >= 0 ? "+" : "") + n.cents;
+          centsEl.className = "cents" + (Math.abs(n.cents) < 15 ? " in-tune" : "");
+          if (huntTarget && huntTarget.pitch === n.pc && Math.abs(n.cents) < 25) {
+            nextHunt();
+          }
+          if (detectMode) addDetected(n.pc);
+        }
+      }
+      micRAF = requestAnimationFrame(micLoop);
+    }
+
+    function startHunt() {
+      nextHunt();
+    }
+
+    function nextHunt() {
+      const sc = SCALES[currentScale];
+      const candidates = [];
+      for (let s = 0; s < 6; s++) {
+        for (let f = 0; f < Math.min(fretCount, 15); f++) {
+          const pitch = (stringTuning[s] + f) % 12;
+          if (sc.int.includes((pitch - currentRoot + 12) % 12)) {
+            candidates.push({ string: s, fret: f, pitch });
+          }
+        }
+      }
+      if (!candidates.length) return;
+      huntTarget = candidates[Math.floor(Math.random() * candidates.length)];
+      drawFretboard();
+      document.getElementById("heard-note").textContent = "?";
+    }
+
+    function clearHunt() {
+      huntTarget = null;
+      drawFretboard();
+    }
+
+    function startMetro() {
+      stopMetro();
+      const bpm = parseInt(document.getElementById("bpm").value, 10) || 80;
+      const interval = 60000 / bpm;
+      const tick = () => {
+        playNote(9, 5); // high A click-ish
+      };
+      tick();
+      metroTimer = setInterval(tick, interval);
+    }
+
+    function stopMetro() {
+      if (metroTimer) clearInterval(metroTimer);
+      metroTimer = null;
+    }
+
+    async function tryLoadDevices() {
+      try {
+        // permission may be needed first
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const inputs = devices.filter(d => d.kind === "audioinput");
+        const sel = document.getElementById("audio-device");
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">Oletus / sisäinen</option>';
+        inputs.forEach((d, i) => {
+          const o = document.createElement("option");
+          o.value = d.deviceId;
+          o.textContent = d.label || ("Äänilaite " + (i + 1));
+          sel.appendChild(o);
+        });
+        if (prev) sel.value = prev;
+      } catch (e) {
+        console.warn("enumerateDevices", e);
+      }
+    }
+
+    function filterScales(q) {
+      const ql = q.toLowerCase();
+      const out = new Set();
+      // direct name / tags / cat
+      for (const [name, sc] of Object.entries(SCALES)) {
+        if (name.toLowerCase().includes(ql)) out.add(name);
+        if ((sc.tags || []).some(t => t.toLowerCase().includes(ql))) out.add(name);
+        if ((sc.cat || "").toLowerCase().includes(ql)) out.add(name);
+        if ((sc.tip || "").toLowerCase().includes(ql)) out.add(name);
+      }
+      // band hints
+      for (const [band, scales] of Object.entries(BAND_HINTS)) {
+        if (band.includes(ql) || ql.includes(band)) {
+          scales.forEach(s => {
+            if (SCALES[s]) out.add(s);
+          });
+        }
+      }
+      return [...out];
+    }
+
+    function setTuning(key) {
+      stringTuning = (TUNINGS[key] || TUNINGS.standard).slice();
+      const names = ["E","A","D","G","B","e"];
+      if (key === "dropd") stringNames = ["D","A","D","G","B","e"];
+      else if (key === "dropc") stringNames = ["C","G","C","F","A","D"];
+      else if (key === "dadgad") stringNames = ["D","A","D","G","A","D"];
+      else if (key === "halfdown" || key === "ebstandard") stringNames = ["Eb","Ab","Db","Gb","Bb","eb"];
+      else if (key === "openg") stringNames = ["D","G","D","G","B","D"];
+      else stringNames = names.slice();
+      drawFretboard();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          document.querySelectorAll(".section").forEach(s => s.classList.remove("visible"));
+          document.getElementById(btn.dataset.section).classList.add("visible");
+          detectMode = btn.dataset.section === "tunnistus" ? detectMode : false;
+        };
+      });
+
+      document.getElementById("root-note").onchange = e => {
+        currentRoot = parseInt(e.target.value, 10);
+        drawFretboard();
+        updateInfo();
+      };
+      document.getElementById("scale-select").onchange = e => selectScale(e.target.value);
+      document.getElementById("chord-select").onchange = e => {
+        currentChord = e.target.value;
+        drawFretboard();
+        updateInfo();
+      };
+      document.getElementById("show-mode").onchange = e => { showMode = e.target.value; drawFretboard(); };
+      document.getElementById("label-mode").onchange = e => { labelMode = e.target.value; drawFretboard(); };
+      document.getElementById("octave-count").onchange = e => {
+        octaveCount = parseInt(e.target.value, 10);
+        drawFretboard();
+      };
+      document.getElementById("octave-start").onchange = e => {
+        octaveStartFret = parseInt(e.target.value, 10);
+        drawFretboard();
+      };
+      document.getElementById("play-scale-btn").onclick = playScaleSeq;
+      document.getElementById("clear-hunt").onclick = clearHunt;
+
+      document.getElementById("fret-count").onchange = e => {
+        fretCount = parseInt(e.target.value, 10);
+        drawFretboard();
+      };
+      document.getElementById("tuning").onchange = e => setTuning(e.target.value);
+      document.getElementById("handed").onchange = e => {
+        leftHanded = e.target.value === "left";
+        drawFretboard();
+      };
+      document.getElementById("gain").oninput = e => {
+        if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
+      };
+      document.getElementById("rms-thresh").oninput = e => {
+        rmsThreshold = parseFloat(e.target.value);
+      };
+      document.getElementById("refresh-devices").onclick = async () => {
+        try {
+          // request permission then list
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          await tryLoadDevices();
+        } catch (err) {
+          await tryLoadDevices();
+        }
+      };
+
+      document.querySelectorAll("#scale-cats .cat-btn").forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll("#scale-cats .cat-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          populateScaleList(btn.dataset.cat);
+        };
+      });
+      document.querySelectorAll("#chord-cats .cat-btn").forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll("#chord-cats .cat-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          populateChordList(btn.dataset.cat);
+        };
+      });
+      document.querySelectorAll("#ex-tabs .ex-tab").forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll("#ex-tabs .ex-tab").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          populateExList(btn.dataset.lvl);
+        };
+      });
+
+      document.getElementById("scale-search").oninput = () => {
+        const active = document.querySelector("#scale-cats .cat-btn.active");
+        populateScaleList(active ? active.dataset.cat : "all");
+      };
+      document.getElementById("chord-search").oninput = () => {
+        const active = document.querySelector("#chord-cats .cat-btn.active");
+        populateChordList(active ? active.dataset.cat : "all");
+      };
+
+      document.getElementById("mic-start").onclick = startMic;
+      document.getElementById("mic-stop").onclick = stopMic;
+      document.getElementById("start-hunt").onclick = startHunt;
+      document.getElementById("metro-start").onclick = startMetro;
+      document.getElementById("metro-stop").onclick = stopMetro;
+
+      document.getElementById("det-clear").onclick = () => {
+        detectedPitches = [];
+        renderDetected();
+        document.getElementById("det-results").innerHTML = "";
+        drawFretboard();
+      };
+      document.getElementById("det-undo").onclick = () => {
+        detectedPitches.pop();
+        renderDetected();
+        matchScales();
+        drawFretboard();
+      };
+      document.getElementById("det-add-mode").onclick = () => {
+        detectMode = true;
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        document.querySelector('[data-section="otelauta"]').classList.add("active");
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("visible"));
+        document.getElementById("otelauta").classList.add("visible");
+        drawFretboard();
+      };
+    }
+
+    init();
+  </script>
+</body>
+</html>

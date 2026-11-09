@@ -32,7 +32,7 @@ export function detectPitch(input: Float32Array, sampleRate: number): Detection 
     energy += sample * sample;
   }
   const rmsIn = Math.sqrt(energy / input.length);
-  if (peak < 0.012 || rmsIn < 0.004) return null;
+  if (peak < 0.0025 || rmsIn < 0.0008) return null;
 
   const length = input.length >> 1;
   if (length < 128) return null;
@@ -93,7 +93,9 @@ export function detectPitch(input: Float32Array, sampleRate: number): Detection 
     const lower = tauEst * 2;
     if (lower > maxTau) break;
     const lowIndex = Math.round(lower);
-    if (yin[lowIndex] + 0.03 < yin[tauEst] && yin[lowIndex] < 0.42) tauEst = lowIndex;
+    const fDown = rate / lowIndex;
+    const credible = fDown >= 70 && fDown <= 500 && yin[lowIndex] < 0.4 && yin[lowIndex] <= yin[tauEst] + 0.08;
+    if (credible) tauEst = lowIndex;
     else break;
   }
 
